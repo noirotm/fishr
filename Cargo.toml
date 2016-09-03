@@ -1,0 +1,23 @@
+[package]
+name = "fishr"
+version = "0.1.0"
+authors = ["Marc Noirot <marc.noirot@gmail.com>"]
+license = "MIT"
+description = "Fish (><>) esoteric language interpreter"
+repository = "https://github.com/noirotm/fishr"
+keywords = ["cli", "interpreter", "esoteric", "fish"]
+readme = "README.md"
+
+[lib]
+name = "fish"
+path = "src/fish.rs"
+
+[[bin]]
+name = "fishr"
+path = "src/main.rs"
+
+[dependencies]
+rand = "0.3"
+
+[dev-dependencies]
+timebomb = {git = "https://github.com/csherratt/timebomb", rev = "f93026054024"}
