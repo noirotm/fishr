@@ -237,6 +237,9 @@ impl<I: Read, O: Write> Interpreter<I, O> {
             ',' => try!(self.div()),
             '%' => try!(self.rem()),
 
+            // equality test
+            '=' => try!(self.equals()),
+
             // end execution
             ';' => return Ok(RuntimeStatus::Stop),
 
@@ -379,6 +382,21 @@ impl<I: Read, O: Write> Interpreter<I, O> {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() % x.to_i64();
                 self.stack.push(Val::Int(res));
+                Ok(())
+            }
+
+            _ => Err(RuntimeError::StackUnderflow)
+        }
+    }
+
+    fn equals(&mut self) -> Result<(), RuntimeError> {
+        match (self.stack.pop(), self.stack.pop()) {
+            (Some(x), Some(y)) => {
+                let res = y.to_i64() == x.to_i64();
+                self.stack.push(Val::Byte(match res {
+                    true => 1,
+                    false => 0,
+                }));
                 Ok(())
             }
 
