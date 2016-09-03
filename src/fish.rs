@@ -223,6 +223,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
             // jump to (x,y)
             '.' => try!(self.jump(code)),
 
+            // # Literals and operators
             // literal values
             v @ '0' ... '9' | v @ 'a' ... 'f' => {
                 if let Ok(val) = u8::from_str_radix(format!("{}", v).as_str(), 16) {
@@ -237,8 +238,14 @@ impl<I: Read, O: Write> Interpreter<I, O> {
             ',' => try!(self.div()),
             '%' => try!(self.rem()),
 
-            // equality test
+            // comparison tests
             '=' => try!(self.equals()),
+            ')' => try!(self.gt()),
+            '(' => try!(self.lt()),
+
+            // # Stack manipulation
+            // Duplicate the top value on the stack
+            
 
             // end execution
             ';' => return Ok(RuntimeStatus::Stop),
@@ -393,6 +400,36 @@ impl<I: Read, O: Write> Interpreter<I, O> {
         match (self.stack.pop(), self.stack.pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() == x.to_i64();
+                self.stack.push(Val::Byte(match res {
+                    true => 1,
+                    false => 0,
+                }));
+                Ok(())
+            }
+
+            _ => Err(RuntimeError::StackUnderflow)
+        }
+    }
+
+    fn gt(&mut self) -> Result<(), RuntimeError> {
+        match (self.stack.pop(), self.stack.pop()) {
+            (Some(x), Some(y)) => {
+                let res = y.to_i64() > x.to_i64();
+                self.stack.push(Val::Byte(match res {
+                    true => 1,
+                    false => 0,
+                }));
+                Ok(())
+            }
+
+            _ => Err(RuntimeError::StackUnderflow)
+        }
+    }
+
+    fn lt(&mut self) -> Result<(), RuntimeError> {
+        match (self.stack.pop(), self.stack.pop()) {
+            (Some(x), Some(y)) => {
+                let res = y.to_i64() < x.to_i64();
                 self.stack.push(Val::Byte(match res {
                     true => 1,
                     false => 0,

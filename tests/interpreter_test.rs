@@ -514,7 +514,81 @@ fn equal_with_empty_stack_fails() {
 #[test]
 fn equal_with_one_element_fails() {
     timeout_ms(|| {
-        let cb = CodeBox::load_from_string("=;");
+        let cb = CodeBox::load_from_string("1=;");
+        let mut interpreter = Interpreter::new(empty(), sink());
+
+        let result = interpreter.run(&cb);
+
+        assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    }, 1000);
+}
+
+#[test]
+fn greater_than_works() {
+    timeout_ms(|| {
+        let cb = CodeBox::load_from_string("11) 01) 10);");
+        let mut interpreter = Interpreter::new(empty(), sink());
+
+        let result = interpreter.run(&cb);
+
+        assert!(result.is_ok());
+        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Byte(0), Val::Byte(0), Val::Byte(1)]);
+    }, 1000);
+}
+
+#[test]
+fn greater_than_with_empty_stack_fails() {
+    timeout_ms(|| {
+        let cb = CodeBox::load_from_string(");");
+        let mut interpreter = Interpreter::new(empty(), sink());
+
+        let result = interpreter.run(&cb);
+
+        assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    }, 1000);
+}
+
+#[test]
+fn greater_than_with_one_element_fails() {
+    timeout_ms(|| {
+        let cb = CodeBox::load_from_string("1);");
+        let mut interpreter = Interpreter::new(empty(), sink());
+
+        let result = interpreter.run(&cb);
+
+        assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    }, 1000);
+}
+
+#[test]
+fn less_than_works() {
+    timeout_ms(|| {
+        let cb = CodeBox::load_from_string("11( 01( 10(;");
+        let mut interpreter = Interpreter::new(empty(), sink());
+
+        let result = interpreter.run(&cb);
+
+        assert!(result.is_ok());
+        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Byte(0), Val::Byte(1), Val::Byte(0)]);
+    }, 1000);
+}
+
+#[test]
+fn less_than_with_empty_stack_fails() {
+    timeout_ms(|| {
+        let cb = CodeBox::load_from_string("(;");
+        let mut interpreter = Interpreter::new(empty(), sink());
+
+        let result = interpreter.run(&cb);
+
+        assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    }, 1000);
+}
+
+#[test]
+fn less_than_with_one_element_fails() {
+    timeout_ms(|| {
+        let cb = CodeBox::load_from_string("1(;");
         let mut interpreter = Interpreter::new(empty(), sink());
 
         let result = interpreter.run(&cb);
