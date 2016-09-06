@@ -170,12 +170,12 @@ impl<I: Read, O: Write> Interpreter<I, O> {
             ParserState::SingleQuoted => match instruction as char {
                 // Exit quote mode
                 '\'' => self.state = ParserState::Normal,
-                _ => self.stack.push(Val::Byte(instruction)),
+                _ => self.stack.top().push(Val::Byte(instruction)),
             },
             ParserState::DoubleQuoted => match instruction as char {
                 // Exit quote mode
                 '"' => self.state = ParserState::Normal,
-                _ => self.stack.push(Val::Byte(instruction)),
+                _ => self.stack.top().push(Val::Byte(instruction)),
             },
             ParserState::Normal => return self.execute_instruction(instruction, code),
         }
@@ -200,7 +200,9 @@ impl<I: Read, O: Write> Interpreter<I, O> {
 
             // random direction
             'x' => {
-                static DIRECTIONS: [Direction; 4] = [Direction::Left, Direction::Right, Direction::Up, Direction::Down];
+                static DIRECTIONS: [Direction; 4] = [
+                    Direction::Left, Direction::Right, Direction::Up, Direction::Down
+                ];
                 if let Some(dir) = self.rng.choose(&DIRECTIONS) {
                     self.dir = dir.clone();
                 }
@@ -212,7 +214,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
             // Conditional trampoline - pop one value off the stack.
             // The next instruction is only executed if the popped value is non-zero.
             '?' => {
-                match self.stack.pop() {
+                match self.stack.top().pop() {
                     Some(v) => if v.to_i64() == 0 {
                         self.advance(code);
                     },
@@ -227,7 +229,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
             // literal values
             v @ '0' ... '9' | v @ 'a' ... 'f' => {
                 if let Ok(val) = u8::from_str_radix(format!("{}", v).as_str(), 16) {
-                    self.stack.push(Val::Byte(val));
+                    self.stack.top().push(Val::Byte(val));
                 }
             },
 
@@ -245,7 +247,13 @@ impl<I: Read, O: Write> Interpreter<I, O> {
 
             // # Stack manipulation
             // Duplicate the top value on the stack
-            
+            ':' => unimplemented!(),
+            // Remove the top value from the stack
+            '~' => unimplemented!(),
+            // Swap the top two values on the stack
+            '$' => unimplemented!(),
+            // Swap the top three values on the stack
+            '@' => unimplemented!(),
 
             // end execution
             ';' => return Ok(RuntimeStatus::Stop),
@@ -310,7 +318,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn jump(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(y_val), Some(x_val)) => {
                 let y = y_val.to_i64();
                 let x = x_val.to_i64();
@@ -336,10 +344,10 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn add(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() + x.to_i64();
-                self.stack.push(Val::Int(res));
+                self.stack.top().push(Val::Int(res));
                 Ok(())
             }
             _ => Err(RuntimeError::StackUnderflow)
@@ -347,10 +355,10 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn sub(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() - x.to_i64();
-                self.stack.push(Val::Int(res));
+                self.stack.top().push(Val::Int(res));
                 Ok(())
             }
             _ => Err(RuntimeError::StackUnderflow)
@@ -358,10 +366,10 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn mul(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() * x.to_i64();
-                self.stack.push(Val::Int(res));
+                self.stack.top().push(Val::Int(res));
                 Ok(())
             }
             _ => Err(RuntimeError::StackUnderflow)
@@ -369,12 +377,12 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn div(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(ref x), _) if x.to_i64() == 0 => Err(RuntimeError::DivideByZero),
 
             (Some(x), Some(y)) => {
                 let res = y.to_f64() / x.to_f64();
-                self.stack.push(Val::Float(res));
+                self.stack.top().push(Val::Float(res));
                 Ok(())
             }
 
@@ -383,12 +391,12 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn rem(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(ref x), _) if x.to_i64() == 0 => Err(RuntimeError::DivideByZero),
 
             (Some(x), Some(y)) => {
                 let res = y.to_i64() % x.to_i64();
-                self.stack.push(Val::Int(res));
+                self.stack.top().push(Val::Int(res));
                 Ok(())
             }
 
@@ -397,10 +405,10 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn equals(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() == x.to_i64();
-                self.stack.push(Val::Byte(match res {
+                self.stack.top().push(Val::Byte(match res {
                     true => 1,
                     false => 0,
                 }));
@@ -412,10 +420,10 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn gt(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() > x.to_i64();
-                self.stack.push(Val::Byte(match res {
+                self.stack.top().push(Val::Byte(match res {
                     true => 1,
                     false => 0,
                 }));
@@ -427,10 +435,10 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     fn lt(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.pop(), self.stack.pop()) {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() < x.to_i64();
-                self.stack.push(Val::Byte(match res {
+                self.stack.top().push(Val::Byte(match res {
                     true => 1,
                     false => 0,
                 }));

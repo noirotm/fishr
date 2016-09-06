@@ -85,21 +85,9 @@ impl StackOfStacks {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.top_stack().len()
-    }
-
-    pub fn push(&mut self, val: Val) {
-        self.top_stack_mut().values.push(val);
-    }
-
-    pub fn pop(&mut self) -> Option<Val> {
-        self.top_stack_mut().values.pop()
-    }
-
     pub fn push_stack(&mut self, moved_items: usize) -> Result<(), Error> {
         let vals: Vec<_> = {
-            let stack = self.top_stack_mut();
+            let stack = self.top();
             match stack.len().checked_sub(moved_items) {
                 Some(v) => stack.values.split_off(v),
                 None => return Err(Error::StackTooSmall),
@@ -117,16 +105,16 @@ impl StackOfStacks {
     pub fn pop_stack(&mut self) {
         if self.stacks.len() > 1 {
             let v = self.stacks.pop().unwrap().values;
-            self.top_stack_mut().values.extend(v);
+            self.top().values.extend(v);
         } else {
-            let s = self.top_stack_mut();
+            let s = self.top();
             s.values.clear();
             s.register = None;
         }
     }
 
     pub fn switch_register(&mut self) -> Result<(), Error> {
-        let stack = self.top_stack_mut();
+        let stack = self.top();
 
         match stack.register.take() {
             None => match stack.pop() {
@@ -139,12 +127,7 @@ impl StackOfStacks {
         Ok(())
     }
 
-    pub fn top_stack(&self) -> &ValStack {
-        debug_assert!(self.stacks.len() > 0);
-        self.stacks.last().unwrap()
-    }
-
-    pub fn top_stack_mut(&mut self) -> &mut ValStack {
+    pub fn top(&mut self) -> &mut ValStack {
         debug_assert!(self.stacks.len() > 0);
         self.stacks.last_mut().unwrap()
     }
@@ -257,49 +240,17 @@ mod tests {
         fn new_works() {
             let s = StackOfStacks::new();
 
-            assert_eq!(s.len(), 0);
             assert_eq!(s.stacks.len(), 1);
             assert_eq!(s.stacks[0].len(), 0);
             assert_eq!(s.stacks[0].register, None);
         }
 
         #[test]
-        fn push_works() {
-            let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
-
-            assert_eq!(s.stacks[0].register, None);
-            assert_eq!(s.stacks[0].values, vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
-        }
-
-        #[test]
-        fn pop_works() {
-            let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
-
-            let val = s.pop();
-            assert_eq!(val, Some(Val::Float(5.8)));
-            assert_eq!(s.stacks[0].values, vec![Val::Byte(5), Val::Int(42)]);
-        }
-
-        #[test]
-        fn pop_empty_stack_fails() {
-            let mut s = StackOfStacks::new();
-
-            let val = s.pop();
-            assert!(val.is_none());
-        }
-
-        #[test]
         fn push_stack_works() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
+            s.top().push(Val::Float(5.8));
 
             let res = s.push_stack(2);
 
@@ -314,9 +265,9 @@ mod tests {
         #[test]
         fn push_stack_with_all_elements_works() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
+            s.top().push(Val::Float(5.8));
 
             let res = s.push_stack(3);
 
@@ -331,9 +282,9 @@ mod tests {
         #[test]
         fn push_stack_with_zero_elements_works() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
+            s.top().push(Val::Float(5.8));
 
             let res = s.push_stack(0);
 
@@ -348,8 +299,8 @@ mod tests {
         #[test]
         fn push_stack_with_too_many_values_fails() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
 
             let res = s.push_stack(3);
 
@@ -359,9 +310,9 @@ mod tests {
         #[test]
         fn pop_stack_works() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
+            s.top().push(Val::Float(5.8));
 
             let _ = s.push_stack(2).unwrap();
 
@@ -375,9 +326,9 @@ mod tests {
         #[test]
         fn pop_stack_with_base_register_works() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
+            s.top().push(Val::Float(5.8));
 
             let _ = s.switch_register().unwrap();
             let _ = s.push_stack(1).unwrap();
@@ -392,9 +343,9 @@ mod tests {
         #[test]
         fn pop_stack_with_top_register_works() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
+            s.top().push(Val::Float(5.8));
 
             let _ = s.push_stack(2).unwrap();
             let _ = s.switch_register().unwrap();
@@ -409,9 +360,9 @@ mod tests {
         #[test]
         fn pop_last_stack_makes_it_empty() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
+            s.top().push(Val::Float(5.8));
 
             let _ = s.switch_register().unwrap();
 
@@ -425,9 +376,9 @@ mod tests {
         #[test]
         fn switch_register_works() {
             let mut s = StackOfStacks::new();
-            s.push(Val::Byte(5));
-            s.push(Val::Int(42));
-            s.push(Val::Float(5.8));
+            s.top().push(Val::Byte(5));
+            s.top().push(Val::Int(42));
+            s.top().push(Val::Float(5.8));
 
             let res = s.switch_register();
 

@@ -140,7 +140,7 @@ fn conditional_trampoline_skips_next_with_zero() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![]);
+        assert_eq!(interpreter.stack.top().values, vec![]);
     }, 1000);
 }
 
@@ -153,7 +153,7 @@ fn conditional_trampoline_executes_next_with_non_zero() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Byte(0x1)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Byte(0x1)]);
     }, 1000);
 }
 
@@ -178,7 +178,7 @@ fn literal_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![
+        assert_eq!(interpreter.stack.top().values, vec![
             Val::Byte(0x1), Val::Byte(0x2), Val::Byte(0x3), Val::Byte(0xa), Val::Byte(0xb), Val::Byte(0xc)
         ]);
     }, 1000);
@@ -193,7 +193,7 @@ fn addition_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Int(13)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Int(13)]);
     }, 1000);
 }
 
@@ -230,7 +230,7 @@ fn substraction_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Int(2), Val::Int(-2)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Int(2), Val::Int(-2)]);
     }, 1000);
 }
 
@@ -267,7 +267,7 @@ fn multiplication_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Int(42), Val::Int(0)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Int(42), Val::Int(0)]);
     }, 1000);
 }
 
@@ -304,7 +304,7 @@ fn division_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Float(4.0), Val::Float(2.25)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Float(4.0), Val::Float(2.25)]);
     }, 1000);
 }
 
@@ -353,7 +353,7 @@ fn modulo_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Int(1), Val::Int(0)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Int(1), Val::Int(0)]);
     }, 1000);
 }
 
@@ -402,7 +402,7 @@ fn single_quotes_work() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![
+        assert_eq!(interpreter.stack.top().values, vec![
             Val::Byte(97), Val::Byte(98), Val::Byte(99), Val::Byte(34)
         ]);
     }, 1000);
@@ -417,7 +417,7 @@ fn double_quotes_work() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![
+        assert_eq!(interpreter.stack.top().values, vec![
             Val::Byte(97), Val::Byte(98), Val::Byte(99), Val::Byte(39)
         ]);
     }, 1000);
@@ -432,7 +432,7 @@ fn jump_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Byte(5)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Byte(5)]);
     }, 1000);
 }
 
@@ -495,7 +495,7 @@ fn equal_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Byte(1), Val::Byte(0)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Byte(1), Val::Byte(0)]);
     }, 1000);
 }
 
@@ -532,7 +532,7 @@ fn greater_than_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Byte(0), Val::Byte(0), Val::Byte(1)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Byte(0), Val::Byte(0), Val::Byte(1)]);
     }, 1000);
 }
 
@@ -569,7 +569,7 @@ fn less_than_works() {
         let result = interpreter.run(&cb);
 
         assert!(result.is_ok());
-        assert_eq!(interpreter.stack.top_stack().values, vec![Val::Byte(0), Val::Byte(1), Val::Byte(0)]);
+        assert_eq!(interpreter.stack.top().values, vec![Val::Byte(0), Val::Byte(1), Val::Byte(0)]);
     }, 1000);
 }
 
