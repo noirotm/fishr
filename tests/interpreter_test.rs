@@ -857,3 +857,43 @@ fn input_works() {
     assert_eq!(interpreter.stack.top().values,
                vec![Val::Byte(49), Val::Byte(50), Val::Byte(51), Val::Int(-1)]);
 }
+
+#[test]
+fn switch_register_from_empty_works() {
+    let cb = CodeBox::load_from_string("1234&;");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert_eq!(interpreter.stack.top().values, vec![
+        Val::Byte(1), Val::Byte(2), Val::Byte(3)
+    ]);
+    assert_eq!(interpreter.stack.top().register, Some(Val::Byte(4)));
+}
+
+#[test]
+fn switch_register_from_full_works() {
+    let cb = CodeBox::load_from_string("1234& &;");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert_eq!(interpreter.stack.top().values, vec![
+        Val::Byte(1), Val::Byte(2), Val::Byte(3), Val::Byte(4)
+    ]);
+    assert_eq!(interpreter.stack.top().register, None);
+}
+
+#[test]
+fn switch_register_with_empty_stack_fails() {
+    let mut out = Vec::new();
+    let cb = CodeBox::load_from_string("&;");
+
+    let mut interpreter = Interpreter::new(empty(), &mut out);
+
+    let result = interpreter.run(&cb);
+
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
+}

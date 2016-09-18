@@ -256,29 +256,13 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             // # Stack manipulation
             // Duplicate the top value on the stack
-            ':' => {
-                if let Err(_) = self.stack.top().dup() {
-                    return Err(RuntimeError::StackUnderflow);
-                }
-            }
+            ':' => try!(self.stack.top().dup().or(Err(RuntimeError::StackUnderflow))),
             // Remove the top value from the stack
-            '~' => {
-                if let Err(_) = self.stack.top().drop() {
-                    return Err(RuntimeError::StackUnderflow);
-                }
-            }
+            '~' => try!(self.stack.top().drop().or(Err(RuntimeError::StackUnderflow))),
             // Swap the top two values on the stack
-            '$' => {
-                if let Err(_) = self.stack.top().swap() {
-                    return Err(RuntimeError::StackUnderflow);
-                }
-            }
+            '$' => try!(self.stack.top().swap().or(Err(RuntimeError::StackUnderflow))),
             // Swap the top three values on the stack
-            '@' => {
-                if let Err(_) = self.stack.top().swap2() {
-                    return Err(RuntimeError::StackUnderflow);
-                }
-            }
+            '@' => try!(self.stack.top().swap2().or(Err(RuntimeError::StackUnderflow))),
             // Shift the entire stack to the right
             '}' => self.stack.top().rshift(),
             // Shift the entire stack to the left
