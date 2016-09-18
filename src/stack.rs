@@ -65,12 +65,16 @@ impl ValStack {
         self.values.pop()
     }
 
-    pub fn set_register_value(&mut self, val: Val) {
-        self.register = Some(val);
-    }
+    pub fn switch_register(&mut self) -> Result<(), Error> {
+        match self.register.take() {
+            None => match self.pop() {
+                Some(val) => self.register = Some(val),
+                None => return Err(Error::StackUnderflow),
+            },
+            Some(val) => self.push(val),
+        }
 
-    pub fn clear_register(&mut self) {
-        self.register = None;
+        Ok(())
     }
 
     pub fn dup(&mut self) -> Result<(), Error> {
@@ -180,22 +184,6 @@ impl StackOfStacks {
         }
     }
 
-    pub fn switch_register(&mut self) -> Result<(), Error> {
-        let stack = self.top();
-
-        match stack.register.take() {
-            None => {
-                match stack.pop() {
-                    Some(val) => stack.register = Some(val),
-                    None => return Err(Error::StackUnderflow),
-                }
-            }
-            Some(val) => stack.push(val),
-        }
-
-        Ok(())
-    }
-
     pub fn top(&mut self) -> &mut ValStack {
         debug_assert!(self.stacks.len() > 0);
         self.stacks.last_mut().unwrap()
@@ -283,34 +271,14 @@ mod tests {
         }
 
         #[test]
-        fn set_register_value_works() {
-            let mut stack = ValStack::new();
-            assert_eq!(stack.register, None);
-
-            stack.set_register_value(Val::Byte(12));
-            assert_eq!(stack.register, Some(Val::Byte(12)));
-        }
-
-        #[test]
-        fn clear_register_works() {
-            let mut stack = ValStack::new();
-            assert_eq!(stack.register, None);
-
-            stack.set_register_value(Val::Byte(12));
-            stack.clear_register();
-
-            assert_eq!(stack.register, None);
-        }
-
-        #[test]
         fn dup_works() {
             let mut stack = ValStack::new();
             stack.push(Val::Byte(5));
             stack.push(Val::Int(42));
 
-            let ret = stack.dup();
+            let res = stack.dup();
 
-            assert!(ret.is_ok());
+            assert!(res.is_ok());
             assert_eq!(stack.values, vec![Val::Byte(5), Val::Int(42), Val::Int(42)]);
         }
 
@@ -318,9 +286,9 @@ mod tests {
         fn dup_with_empty_stack_fails() {
             let mut stack = ValStack::new();
 
-            let ret = stack.dup();
+            let res = stack.dup();
 
-            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+            assert_eq!(res, Err(Error::StackUnderflow));
         }
 
         #[test]
@@ -329,9 +297,9 @@ mod tests {
             stack.push(Val::Byte(5));
             stack.push(Val::Int(42));
 
-            let ret = stack.drop();
+            let res = stack.drop();
 
-            assert!(ret.is_ok());
+            assert!(res.is_ok());
             assert_eq!(stack.values, vec![Val::Byte(5)]);
         }
 
@@ -339,9 +307,38 @@ mod tests {
         fn drop_with_empty_stack_fails() {
             let mut stack = ValStack::new();
 
-            let ret = stack.drop();
+            let res = stack.drop();
 
-            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+            assert_eq!(res, Err(Error::StackUnderflow));
+        }
+
+        #[test]
+        fn switch_register_works() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(5));
+            stack.push(Val::Int(42));
+            stack.push(Val::Float(5.8));
+
+            let res = stack.switch_register();
+
+            assert!(res.is_ok());
+            assert_eq!(stack.register, Some(Val::Float(5.8)));
+            assert_eq!(stack.values, vec![Val::Byte(5), Val::Int(42)]);
+
+            let res2 = stack.switch_register();
+
+            assert!(res2.is_ok());
+            assert_eq!(stack.register, None);
+            assert_eq!(stack.values, vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
+        }
+
+        #[test]
+        fn switch_empty_register_on_empty_stack_fails() {
+            let mut stack = ValStack::new();
+
+            let res = stack.switch_register();
+
+            assert_eq!(res, Err(Error::StackUnderflow));
         }
 
         #[test]
@@ -351,9 +348,9 @@ mod tests {
             stack.push(Val::Byte(2));
             stack.push(Val::Byte(3));
 
-            let ret = stack.swap();
+            let res = stack.swap();
 
-            assert!(ret.is_ok());
+            assert!(res.is_ok());
             assert_eq!(stack.values, vec![Val::Byte(1), Val::Byte(3), Val::Byte(2)]);
         }
 
@@ -361,9 +358,9 @@ mod tests {
         fn swap_with_empty_stack_fails() {
             let mut stack = ValStack::new();
 
-            let ret = stack.swap();
+            let res = stack.swap();
 
-            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+            assert_eq!(res, Err(Error::StackUnderflow));
         }
 
         #[test]
@@ -371,9 +368,9 @@ mod tests {
             let mut stack = ValStack::new();
             stack.push(Val::Byte(1));
 
-            let ret = stack.swap();
+            let res = stack.swap();
 
-            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+            assert_eq!(res, Err(Error::StackUnderflow));
         }
 
         #[test]
@@ -384,9 +381,9 @@ mod tests {
             stack.push(Val::Byte(3));
             stack.push(Val::Byte(4));
 
-            let ret = stack.swap2();
+            let res = stack.swap2();
 
-            assert!(ret.is_ok());
+            assert!(res.is_ok());
             assert_eq!(stack.values,
                        vec![Val::Byte(1), Val::Byte(4), Val::Byte(2), Val::Byte(3)]);
         }
@@ -395,9 +392,9 @@ mod tests {
         fn swap2_with_empty_stack_fails() {
             let mut stack = ValStack::new();
 
-            let ret = stack.swap2();
+            let res = stack.swap2();
 
-            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+            assert_eq!(res, Err(Error::StackUnderflow));
         }
 
         #[test]
@@ -405,9 +402,9 @@ mod tests {
             let mut stack = ValStack::new();
             stack.push(Val::Byte(1));
 
-            let ret = stack.swap2();
+            let res = stack.swap2();
 
-            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+            assert_eq!(res, Err(Error::StackUnderflow));
         }
 
         #[test]
@@ -416,9 +413,9 @@ mod tests {
             stack.push(Val::Byte(1));
             stack.push(Val::Byte(2));
 
-            let ret = stack.swap2();
+            let res = stack.swap2();
 
-            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+            assert_eq!(res, Err(Error::StackUnderflow));
         }
 
         #[test]
@@ -523,7 +520,7 @@ mod tests {
 
             let res = s.push_stack(3);
 
-            assert!(res.is_err());
+            assert_eq!(res, Err(Error::StackUnderflow));
         }
 
         #[test]
@@ -552,7 +549,7 @@ mod tests {
             s.top().push(Val::Int(42));
             s.top().push(Val::Float(5.8));
 
-            let _ = s.switch_register().unwrap();
+            let _ = s.top().switch_register().unwrap();
             let _ = s.push_stack(1).unwrap();
 
             s.pop_stack();
@@ -570,7 +567,7 @@ mod tests {
             s.top().push(Val::Float(5.8));
 
             let _ = s.push_stack(2).unwrap();
-            let _ = s.switch_register().unwrap();
+            let _ = s.top().switch_register().unwrap();
 
             s.pop_stack();
 
@@ -586,43 +583,13 @@ mod tests {
             s.top().push(Val::Int(42));
             s.top().push(Val::Float(5.8));
 
-            let _ = s.switch_register().unwrap();
+            let _ = s.top().switch_register().unwrap();
 
             s.pop_stack();
 
             assert_eq!(s.stacks.len(), 1);
             assert_eq!(s.stacks[0].values, vec![]);
             assert_eq!(s.stacks[0].register, None);
-        }
-
-        #[test]
-        fn switch_register_works() {
-            let mut s = StackOfStacks::new();
-            s.top().push(Val::Byte(5));
-            s.top().push(Val::Int(42));
-            s.top().push(Val::Float(5.8));
-
-            let res = s.switch_register();
-
-            assert!(res.is_ok());
-            assert_eq!(s.stacks[0].register, Some(Val::Float(5.8)));
-            assert_eq!(s.stacks[0].values, vec![Val::Byte(5), Val::Int(42)]);
-
-            let res2 = s.switch_register();
-
-            assert!(res2.is_ok());
-            assert_eq!(s.stacks[0].register, None);
-            assert_eq!(s.stacks[0].values,
-                       vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
-        }
-
-        #[test]
-        fn switch_empty_register_on_empty_stack_fails() {
-            let mut s = StackOfStacks::new();
-
-            let res = s.switch_register();
-
-            assert!(res.is_err());
         }
     }
 }

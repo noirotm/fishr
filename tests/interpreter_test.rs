@@ -30,8 +30,7 @@ fn empty_code_does_not_run() {
 
     let result = interpreter.run(&cb);
 
-    assert!(result.is_err());
-    assert_eq!(result.unwrap_err(), RuntimeError::InvalidIpPosition);
+    assert_eq!(result, Err(RuntimeError::InvalidIpPosition));
 }
 
 #[test]
@@ -41,8 +40,7 @@ fn invalid_code_does_not_run() {
 
     let result = interpreter.run(&cb);
 
-    assert!(result.is_err());
-    assert_eq!(result.unwrap_err(), RuntimeError::InvalidInstruction);
+    assert_eq!(result, Err(RuntimeError::InvalidInstruction));
 }
 
 #[test]
@@ -51,6 +49,7 @@ fn skip_works() {
     let mut interpreter = Interpreter::new(empty(), sink());
 
     let result = interpreter.run(&cb);
+
     assert!(result.is_ok());
     assert_eq!(interpreter.dir, Direction::Right);
 }
@@ -154,7 +153,7 @@ fn conditional_trampoline_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -192,7 +191,7 @@ fn addition_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -202,7 +201,7 @@ fn addition_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -224,7 +223,7 @@ fn substraction_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -234,7 +233,7 @@ fn substraction_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -256,7 +255,7 @@ fn multiplication_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -266,7 +265,7 @@ fn multiplication_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -288,7 +287,7 @@ fn division_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -298,7 +297,7 @@ fn division_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -308,7 +307,7 @@ fn division_by_zero_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::DivideByZero);
+    assert_eq!(result, Err(RuntimeError::DivideByZero));
 }
 
 #[test]
@@ -330,7 +329,7 @@ fn modulo_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -340,7 +339,7 @@ fn modulo_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -350,7 +349,7 @@ fn modulo_by_zero_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::DivideByZero);
+    assert_eq!(result, Err(RuntimeError::DivideByZero));
 }
 
 #[test]
@@ -395,7 +394,7 @@ fn jump_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -405,7 +404,7 @@ fn jump_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -417,7 +416,7 @@ fn jump_too_far_wraps_to_zero() {
 
     // after the jump that wraps to [0,0], the next ip position will be
     // [0,1] so we will execute jump again with only one value in the stack
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -427,7 +426,7 @@ fn jump_to_negative_position_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::InvalidIpPosition);
+    assert_eq!(result, Err(RuntimeError::InvalidIpPosition));
 }
 
 #[test]
@@ -449,7 +448,7 @@ fn equal_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -459,7 +458,7 @@ fn equal_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -481,7 +480,7 @@ fn greater_than_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -491,7 +490,7 @@ fn greater_than_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -513,7 +512,7 @@ fn less_than_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -523,7 +522,7 @@ fn less_than_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -545,7 +544,7 @@ fn dup_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -567,7 +566,7 @@ fn drop_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -589,7 +588,7 @@ fn swap_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -599,7 +598,7 @@ fn swap_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -621,7 +620,7 @@ fn swap2_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -631,7 +630,7 @@ fn swap2_with_one_element_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -641,7 +640,7 @@ fn swap2_with_two_elements_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -733,7 +732,7 @@ fn new_stack_with_too_many_elements_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -743,7 +742,7 @@ fn new_stack_with_negative_elements_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -800,7 +799,7 @@ fn char_output_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]
@@ -842,7 +841,7 @@ fn num_output_with_empty_stack_fails() {
 
     let result = interpreter.run(&cb);
 
-    assert_eq!(result.unwrap_err(), RuntimeError::StackUnderflow);
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
 
 #[test]

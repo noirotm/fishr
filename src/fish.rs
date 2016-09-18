@@ -314,6 +314,9 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // Input byte
             'i' => try!(self.input()),
 
+            // register operation
+            '&' => try!(self.stack.top().switch_register().or(Err(RuntimeError::StackUnderflow))),
+
             // end execution
             ';' => return Ok(RuntimeStatus::Stop),
 
