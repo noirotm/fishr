@@ -25,8 +25,7 @@ fn main() {
 
     let mut fish = fish::Interpreter::new(input, output);
 
-    let result = fish.run(&codebox);
-    if result.is_err() {
+    if fish.run(&codebox).is_err() {
         println!("something smells fishy...")
     }
 }

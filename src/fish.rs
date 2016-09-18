@@ -2,7 +2,7 @@ use std::cmp;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{BufReader, Bytes};
 use std::path::Path;
 
 extern crate rand;
@@ -95,6 +95,7 @@ pub enum RuntimeError {
     InvalidIpPosition,
     StackUnderflow,
     DivideByZero,
+    IOError,
 }
 
 enum ParserState {
@@ -103,27 +104,24 @@ enum ParserState {
     DoubleQuoted,
 }
 
-pub struct Interpreter<I: Read, O: Write> {
+pub struct Interpreter<R: Read, W: Write> {
     pub ip: InstructionPtr,
     pub dir: Direction,
     pub stack: StackOfStacks,
 
-    input: I,
-    output: O,
+    input: Bytes<R>,
+    output: W,
     rng: ThreadRng,
     state: ParserState,
 }
 
-impl<I: Read, O: Write> Interpreter<I, O> {
-    pub fn new(input: I, output: O) -> Interpreter<I, O> {
+impl<R: Read, W: Write> Interpreter<R, W> {
+    pub fn new(input: R, output: W) -> Interpreter<R, W> {
         Interpreter {
-            ip: InstructionPtr {
-                chr: 0,
-                line: 0,
-            },
+            ip: InstructionPtr { chr: 0, line: 0 },
             dir: Direction::Right,
             stack: StackOfStacks::new(),
-            input: input,
+            input: input.bytes(),
             output: output,
             rng: thread_rng(),
             state: ParserState::Normal,
@@ -131,10 +129,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     }
 
     pub fn reset(&mut self) {
-        self.ip = InstructionPtr {
-            chr: 0,
-            line: 0,
-        };
+        self.ip = InstructionPtr { chr: 0, line: 0 };
         self.dir = Direction::Right;
         self.state = ParserState::Normal;
     }
@@ -147,11 +142,11 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 None => return Err(RuntimeError::InvalidIpPosition),
             };
 
-            //println!("{:?}", self.stack.stacks[0].values);
-            //println!("[{}, {}] => {}", self.ip.chr, self.ip.line, instruction as char);
+            // println!("{:?}", self.stack.stacks[0].values);
+            // println!("[{}, {}] => {}", self.ip.chr, self.ip.line, instruction as char);
 
             match self.execute(instruction, code) {
-                Ok(RuntimeStatus::Continue) => {},
+                Ok(RuntimeStatus::Continue) => {}
                 Ok(RuntimeStatus::Stop) => return Ok(()),
                 Err(err) => return Err(err),
             }
@@ -165,24 +160,34 @@ impl<I: Read, O: Write> Interpreter<I, O> {
         code.get(self.ip.chr, self.ip.line)
     }
 
-    pub fn execute(&mut self, instruction: u8, code: &CodeBox) -> Result<RuntimeStatus, RuntimeError> {
+    pub fn execute(&mut self,
+                   instruction: u8,
+                   code: &CodeBox)
+                   -> Result<RuntimeStatus, RuntimeError> {
         match self.state {
-            ParserState::SingleQuoted => match instruction as char {
-                // Exit quote mode
-                '\'' => self.state = ParserState::Normal,
-                _ => self.stack.top().push(Val::Byte(instruction)),
-            },
-            ParserState::DoubleQuoted => match instruction as char {
-                // Exit quote mode
-                '"' => self.state = ParserState::Normal,
-                _ => self.stack.top().push(Val::Byte(instruction)),
-            },
+            ParserState::SingleQuoted => {
+                match instruction as char {
+                    // Exit quote mode
+                    '\'' => self.state = ParserState::Normal,
+                    _ => self.stack.top().push(Val::Byte(instruction)),
+                }
+            }
+            ParserState::DoubleQuoted => {
+                match instruction as char {
+                    // Exit quote mode
+                    '"' => self.state = ParserState::Normal,
+                    _ => self.stack.top().push(Val::Byte(instruction)),
+                }
+            }
             ParserState::Normal => return self.execute_instruction(instruction, code),
         }
         Ok(RuntimeStatus::Continue)
     }
 
-    fn execute_instruction(&mut self, instruction: u8, code: &CodeBox) -> Result<RuntimeStatus, RuntimeError> {
+    fn execute_instruction(&mut self,
+                           instruction: u8,
+                           code: &CodeBox)
+                           -> Result<RuntimeStatus, RuntimeError> {
         match instruction as char {
             // Enter quote mode
             '\'' => self.state = ParserState::SingleQuoted,
@@ -200,13 +205,15 @@ impl<I: Read, O: Write> Interpreter<I, O> {
 
             // random direction
             'x' => {
-                static DIRECTIONS: [Direction; 4] = [
-                    Direction::Left, Direction::Right, Direction::Up, Direction::Down
-                ];
+                static DIRECTIONS: [Direction; 4] = [Direction::Left,
+                                                     Direction::Right,
+                                                     Direction::Up,
+                                                     Direction::Down];
+
                 if let Some(dir) = self.rng.choose(&DIRECTIONS) {
                     self.dir = dir.clone();
                 }
-            },
+            }
 
             // skip the following instruction
             '!' => self.advance(code),
@@ -215,23 +222,25 @@ impl<I: Read, O: Write> Interpreter<I, O> {
             // The next instruction is only executed if the popped value is non-zero.
             '?' => {
                 match self.stack.top().pop() {
-                    Some(v) => if v.to_i64() == 0 {
-                        self.advance(code);
-                    },
+                    Some(v) => {
+                        if v.to_i64() == 0 {
+                            self.advance(code);
+                        }
+                    }
                     None => return Err(RuntimeError::StackUnderflow),
                 };
-            },
+            }
 
             // jump to (x,y)
             '.' => try!(self.jump(code)),
 
             // # Literals and operators
             // literal values
-            v @ '0' ... '9' | v @ 'a' ... 'f' => {
+            v @ '0'...'9' | v @ 'a'...'f' => {
                 if let Ok(val) = u8::from_str_radix(format!("{}", v).as_str(), 16) {
                     self.stack.top().push(Val::Byte(val));
                 }
-            },
+            }
 
             // arithmetic operations
             '+' => try!(self.add()),
@@ -247,19 +256,69 @@ impl<I: Read, O: Write> Interpreter<I, O> {
 
             // # Stack manipulation
             // Duplicate the top value on the stack
-            ':' => unimplemented!(),
+            ':' => {
+                if let Err(_) = self.stack.top().dup() {
+                    return Err(RuntimeError::StackUnderflow);
+                }
+            }
             // Remove the top value from the stack
-            '~' => unimplemented!(),
+            '~' => {
+                if let Err(_) = self.stack.top().drop() {
+                    return Err(RuntimeError::StackUnderflow);
+                }
+            }
             // Swap the top two values on the stack
-            '$' => unimplemented!(),
+            '$' => {
+                if let Err(_) = self.stack.top().swap() {
+                    return Err(RuntimeError::StackUnderflow);
+                }
+            }
             // Swap the top three values on the stack
-            '@' => unimplemented!(),
+            '@' => {
+                if let Err(_) = self.stack.top().swap2() {
+                    return Err(RuntimeError::StackUnderflow);
+                }
+            }
+            // Shift the entire stack to the right
+            '}' => self.stack.top().rshift(),
+            // Shift the entire stack to the left
+            '{' => self.stack.top().lshift(),
+            // Reverse the stack
+            'r' => self.stack.top().values.reverse(),
+            // Push the length of the stack onto the stack
+            'l' => {
+                let l = self.stack.top().values.len();
+                self.stack.top().values.push(Val::Int(l as i64));
+            }
+
+            // # Stack of stacks
+            // Pop x off the stack and create a new stack, moving x values.
+            '[' => {
+                match self.stack.top().pop() {
+                    Some(v) => {
+                        if let Err(_) = self.stack.push_stack(v.to_i64() as usize) {
+                            return Err(RuntimeError::StackUnderflow);
+                        }
+                    }
+                    None => return Err(RuntimeError::StackUnderflow),
+                }
+            }
+            // Remove the current stack, moving its values to the top of the underlying stack
+            ']' => self.stack.pop_stack(),
+
+            // # I/O
+            // Output value as character
+            'o' => try!(self.char_output()),
+            // Output value as number
+            'n' => try!(self.num_output()),
+            // Input byte
+            'i' => try!(self.input()),
 
             // end execution
             ';' => return Ok(RuntimeStatus::Stop),
 
             // nop
-            ' ' => {},
+            ' ' => {}
 
             _ => return Err(RuntimeError::InvalidInstruction),
         }
@@ -269,8 +328,8 @@ impl<I: Read, O: Write> Interpreter<I, O> {
     fn advance(&mut self, code: &CodeBox) {
         match self.dir {
             Direction::Right => self.ip.chr = self.ip.chr.checked_add(1).unwrap_or(0),
-            Direction::Left => self.ip.chr = self.ip.chr.checked_sub(1).unwrap_or(code.width-1),
-            Direction::Up => self.ip.line = self.ip.line.checked_sub(1).unwrap_or(code.height-1),
+            Direction::Left => self.ip.chr = self.ip.chr.checked_sub(1).unwrap_or(code.width - 1),
+            Direction::Up => self.ip.line = self.ip.line.checked_sub(1).unwrap_or(code.height - 1),
             Direction::Down => self.ip.line = self.ip.line.checked_add(1).unwrap_or(0),
         }
         if self.ip.chr >= code.width {
@@ -283,37 +342,47 @@ impl<I: Read, O: Write> Interpreter<I, O> {
 
     fn mirror(&mut self, instruction: u8) {
         match instruction as char {
-            '/' => self.dir = match self.dir {
-                Direction::Right => Direction::Up,
-                Direction::Left => Direction::Down,
-                Direction::Up => Direction::Right,
-                Direction::Down => Direction::Left,
-            },
-            '\\' => self.dir = match self.dir {
-                Direction::Right => Direction::Down,
-                Direction::Left => Direction::Up,
-                Direction::Up => Direction::Left,
-                Direction::Down => Direction::Right,
-            },
-            '|' => self.dir = match self.dir {
-                Direction::Right => Direction::Left,
-                Direction::Left => Direction::Right,
-                Direction::Up => Direction::Up,
-                Direction::Down => Direction::Down,
-            },
-            '_' => self.dir = match self.dir {
-                Direction::Right => Direction::Right,
-                Direction::Left => Direction::Left,
-                Direction::Up => Direction::Down,
-                Direction::Down => Direction::Up,
-            },
-            '#' => self.dir = match self.dir {
-                Direction::Right => Direction::Left,
-                Direction::Left => Direction::Right,
-                Direction::Up => Direction::Down,
-                Direction::Down => Direction::Up,
-            },
-            _ => {},
+            '/' => {
+                self.dir = match self.dir {
+                    Direction::Right => Direction::Up,
+                    Direction::Left => Direction::Down,
+                    Direction::Up => Direction::Right,
+                    Direction::Down => Direction::Left,
+                }
+            }
+            '\\' => {
+                self.dir = match self.dir {
+                    Direction::Right => Direction::Down,
+                    Direction::Left => Direction::Up,
+                    Direction::Up => Direction::Left,
+                    Direction::Down => Direction::Right,
+                }
+            }
+            '|' => {
+                self.dir = match self.dir {
+                    Direction::Right => Direction::Left,
+                    Direction::Left => Direction::Right,
+                    Direction::Up => Direction::Up,
+                    Direction::Down => Direction::Down,
+                }
+            }
+            '_' => {
+                self.dir = match self.dir {
+                    Direction::Right => Direction::Right,
+                    Direction::Left => Direction::Left,
+                    Direction::Up => Direction::Down,
+                    Direction::Down => Direction::Up,
+                }
+            }
+            '#' => {
+                self.dir = match self.dir {
+                    Direction::Right => Direction::Left,
+                    Direction::Left => Direction::Right,
+                    Direction::Up => Direction::Down,
+                    Direction::Down => Direction::Up,
+                }
+            }
+            _ => {}
         }
     }
 
@@ -339,7 +408,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
 
                 Ok(())
             }
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
     }
 
@@ -350,7 +419,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 self.stack.top().push(Val::Int(res));
                 Ok(())
             }
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
     }
 
@@ -361,7 +430,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 self.stack.top().push(Val::Int(res));
                 Ok(())
             }
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
     }
 
@@ -372,7 +441,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 self.stack.top().push(Val::Int(res));
                 Ok(())
             }
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
     }
 
@@ -386,7 +455,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 Ok(())
             }
 
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
     }
 
@@ -400,7 +469,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 Ok(())
             }
 
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
     }
 
@@ -415,7 +484,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 Ok(())
             }
 
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
     }
 
@@ -430,7 +499,7 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 Ok(())
             }
 
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
     }
 
@@ -445,8 +514,35 @@ impl<I: Read, O: Write> Interpreter<I, O> {
                 Ok(())
             }
 
-            _ => Err(RuntimeError::StackUnderflow)
+            _ => Err(RuntimeError::StackUnderflow),
         }
+    }
+
+    fn char_output(&mut self) -> Result<(), RuntimeError> {
+        match self.stack.top().pop() {
+            Some(v) => {
+                let c = v.to_u8() as char;
+                write!(&mut self.output, "{}", c).or(Err(RuntimeError::IOError))
+            }
+            None => Err(RuntimeError::StackUnderflow),
+        }
+    }
+
+    fn num_output(&mut self) -> Result<(), RuntimeError> {
+        match self.stack.top().pop() {
+            Some(Val::Float(f)) => write!(&mut self.output, "{}", f).or(Err(RuntimeError::IOError)),
+            Some(v) => write!(&mut self.output, "{}", v.to_i64()).or(Err(RuntimeError::IOError)),
+            None => Err(RuntimeError::StackUnderflow),
+        }
+    }
+
+    fn input(&mut self) -> Result<(), RuntimeError> {
+        match self.input.next() {
+            Some(Ok(b)) => self.stack.top().push(Val::Byte(b)),
+            Some(Err(_)) => return Err(RuntimeError::IOError),
+            None => self.stack.top().push(Val::Int(-1)),
+        }
+        Ok(())
     }
 }
 

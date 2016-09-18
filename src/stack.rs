@@ -1,4 +1,4 @@
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Val {
     Byte(u8),
     Int(i64),
@@ -33,7 +33,7 @@ impl Val {
 
 #[derive(PartialEq, Debug)]
 pub enum Error {
-    StackTooSmall,
+    StackUnderflow,
 }
 
 pub struct ValStack {
@@ -72,17 +72,84 @@ impl ValStack {
     pub fn clear_register(&mut self) {
         self.register = None;
     }
+
+    pub fn dup(&mut self) -> Result<(), Error> {
+        match self.values.len() {
+            0 => Err(Error::StackUnderflow),
+            n => {
+                let v = self.values[n - 1];
+                self.values.push(v);
+                Ok(())
+            }
+        }
+    }
+
+    pub fn drop(&mut self) -> Result<(), Error> {
+        match self.values.len() {
+            0 => Err(Error::StackUnderflow),
+            n => {
+                self.values.truncate(n - 1);
+                Ok(())
+            }
+        }
+    }
+
+    pub fn swap(&mut self) -> Result<(), Error> {
+        match self.values.len() {
+            n if n >= 2 => {
+                let x = self.values[n - 1];
+                let y = self.values[n - 2];
+                self.values[n - 2] = x;
+                self.values[n - 1] = y;
+                Ok(())
+            }
+            _ => Err(Error::StackUnderflow),
+        }
+    }
+
+    pub fn swap2(&mut self) -> Result<(), Error> {
+        match self.values.len() {
+            n if n >= 3 => {
+                let x = self.values[n - 3];
+                let y = self.values[n - 2];
+                let z = self.values[n - 1];
+                self.values[n - 3] = z;
+                self.values[n - 2] = x;
+                self.values[n - 1] = y;
+                Ok(())
+            }
+            _ => Err(Error::StackUnderflow),
+        }
+    }
+
+    pub fn rshift(&mut self) {
+        match self.values.len() {
+            0 | 1 => {}
+            n => {
+                let mut v: Vec<_> = self.values.drain(0..n - 1).collect();
+                self.values.append(&mut v);
+            }
+        }
+    }
+
+    pub fn lshift(&mut self) {
+        match self.values.len() {
+            0 | 1 => {}
+            _ => {
+                let v = self.values.remove(0);
+                self.values.push(v);
+            }
+        }
+    }
 }
 
 pub struct StackOfStacks {
-    pub stacks: Vec<ValStack>
+    pub stacks: Vec<ValStack>,
 }
 
 impl StackOfStacks {
     pub fn new() -> StackOfStacks {
-        StackOfStacks{
-            stacks: vec![ValStack::new()], // there is always at least one stack
-        }
+        StackOfStacks { stacks: vec![ValStack::new()] /* there is always at least one stack */ }
     }
 
     pub fn push_stack(&mut self, moved_items: usize) -> Result<(), Error> {
@@ -90,7 +157,7 @@ impl StackOfStacks {
             let stack = self.top();
             match stack.len().checked_sub(moved_items) {
                 Some(v) => stack.values.split_off(v),
-                None => return Err(Error::StackTooSmall),
+                None => return Err(Error::StackUnderflow),
             }
         };
 
@@ -117,10 +184,12 @@ impl StackOfStacks {
         let stack = self.top();
 
         match stack.register.take() {
-            None => match stack.pop() {
-                Some(val) => stack.register = Some(val),
-                None => return Err(Error::StackTooSmall),
-            },
+            None => {
+                match stack.pop() {
+                    Some(val) => stack.register = Some(val),
+                    None => return Err(Error::StackUnderflow),
+                }
+            }
             Some(val) => stack.push(val),
         }
 
@@ -182,7 +251,8 @@ mod tests {
             stack.push(Val::Float(5.8));
 
             assert_eq!(stack.len(), 3);
-            assert_eq!(stack.values, vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
+            assert_eq!(stack.values,
+                       vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
         }
 
         #[test]
@@ -231,6 +301,153 @@ mod tests {
 
             assert_eq!(stack.register, None);
         }
+
+        #[test]
+        fn dup_works() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(5));
+            stack.push(Val::Int(42));
+
+            let ret = stack.dup();
+
+            assert!(ret.is_ok());
+            assert_eq!(stack.values, vec![Val::Byte(5), Val::Int(42), Val::Int(42)]);
+        }
+
+        #[test]
+        fn dup_with_empty_stack_fails() {
+            let mut stack = ValStack::new();
+
+            let ret = stack.dup();
+
+            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+        }
+
+        #[test]
+        fn drop_works() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(5));
+            stack.push(Val::Int(42));
+
+            let ret = stack.drop();
+
+            assert!(ret.is_ok());
+            assert_eq!(stack.values, vec![Val::Byte(5)]);
+        }
+
+        #[test]
+        fn drop_with_empty_stack_fails() {
+            let mut stack = ValStack::new();
+
+            let ret = stack.drop();
+
+            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+        }
+
+        #[test]
+        fn swap_works() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(1));
+            stack.push(Val::Byte(2));
+            stack.push(Val::Byte(3));
+
+            let ret = stack.swap();
+
+            assert!(ret.is_ok());
+            assert_eq!(stack.values, vec![Val::Byte(1), Val::Byte(3), Val::Byte(2)]);
+        }
+
+        #[test]
+        fn swap_with_empty_stack_fails() {
+            let mut stack = ValStack::new();
+
+            let ret = stack.swap();
+
+            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+        }
+
+        #[test]
+        fn swap_with_one_element_fails() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(1));
+
+            let ret = stack.swap();
+
+            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+        }
+
+        #[test]
+        fn swap2_works() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(1));
+            stack.push(Val::Byte(2));
+            stack.push(Val::Byte(3));
+            stack.push(Val::Byte(4));
+
+            let ret = stack.swap2();
+
+            assert!(ret.is_ok());
+            assert_eq!(stack.values,
+                       vec![Val::Byte(1), Val::Byte(4), Val::Byte(2), Val::Byte(3)]);
+        }
+
+        #[test]
+        fn swap2_with_empty_stack_fails() {
+            let mut stack = ValStack::new();
+
+            let ret = stack.swap2();
+
+            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+        }
+
+        #[test]
+        fn swap2_with_one_element_fails() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(1));
+
+            let ret = stack.swap2();
+
+            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+        }
+
+        #[test]
+        fn swap2_with_two_elements_fails() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(1));
+            stack.push(Val::Byte(2));
+
+            let ret = stack.swap2();
+
+            assert_eq!(ret.unwrap_err(), Error::StackUnderflow);
+        }
+
+        #[test]
+        fn rshift_works() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(1));
+            stack.push(Val::Byte(2));
+            stack.push(Val::Byte(3));
+            stack.push(Val::Byte(4));
+
+            stack.rshift();
+
+            assert_eq!(stack.values,
+                       vec![Val::Byte(4), Val::Byte(1), Val::Byte(2), Val::Byte(3)]);
+        }
+
+        #[test]
+        fn lshift_works() {
+            let mut stack = ValStack::new();
+            stack.push(Val::Byte(1));
+            stack.push(Val::Byte(2));
+            stack.push(Val::Byte(3));
+            stack.push(Val::Byte(4));
+
+            stack.lshift();
+
+            assert_eq!(stack.values,
+                       vec![Val::Byte(2), Val::Byte(3), Val::Byte(4), Val::Byte(1)]);
+        }
     }
 
     mod stack_of_stacks {
@@ -275,7 +492,8 @@ mod tests {
 
             assert_eq!(s.stacks.len(), 2);
             assert_eq!(s.stacks[0].values, vec![]);
-            assert_eq!(s.stacks[1].values, vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
+            assert_eq!(s.stacks[1].values,
+                       vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
             assert_eq!(s.stacks[1].register, None);
         }
 
@@ -291,7 +509,8 @@ mod tests {
             assert!(res.is_ok());
 
             assert_eq!(s.stacks.len(), 2);
-            assert_eq!(s.stacks[0].values, vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
+            assert_eq!(s.stacks[0].values,
+                       vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
             assert_eq!(s.stacks[1].values, vec![]);
             assert_eq!(s.stacks[1].register, None);
         }
@@ -314,12 +533,15 @@ mod tests {
             s.top().push(Val::Int(42));
             s.top().push(Val::Float(5.8));
 
-            let _ = s.push_stack(2).unwrap();
+            let res = s.push_stack(2);
+
+            assert!(res.is_ok());
 
             s.pop_stack();
 
             assert_eq!(s.stacks.len(), 1);
-            assert_eq!(s.stacks[0].values, vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
+            assert_eq!(s.stacks[0].values,
+                       vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
             assert_eq!(s.stacks[0].register, None);
         }
 
@@ -390,7 +612,8 @@ mod tests {
 
             assert!(res2.is_ok());
             assert_eq!(s.stacks[0].register, None);
-            assert_eq!(s.stacks[0].values, vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
+            assert_eq!(s.stacks[0].values,
+                       vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
         }
 
         #[test]
