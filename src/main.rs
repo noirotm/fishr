@@ -26,6 +26,7 @@ fn main() {
     let mut fish = fish::Interpreter::new(input, output);
 
     if fish.run(&codebox).is_err() {
-        println!("something smells fishy...")
+        println!("something smells fishy...");
+        process::exit(3);
     }
 }
