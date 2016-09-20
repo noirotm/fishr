@@ -95,6 +95,7 @@ pub enum RuntimeError {
     InvalidInstruction,
     InvalidIpPosition,
     StackUnderflow,
+    IntegerOverflow,
     DivideByZero,
     IOError,
 }
@@ -424,7 +425,10 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     fn add(&mut self) -> Result<(), RuntimeError> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
-                let res = y.to_i64() + x.to_i64();
+                let res = match y.to_i64().checked_add(x.to_i64()) {
+                    Some(v) => v,
+                    None => return Err(RuntimeError::IntegerOverflow),
+                };
                 self.stack.top().push(Val::Int(res));
                 Ok(())
             }
@@ -435,7 +439,10 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     fn sub(&mut self) -> Result<(), RuntimeError> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
-                let res = y.to_i64() - x.to_i64();
+                let res = match y.to_i64().checked_sub(x.to_i64()) {
+                    Some(v) => v,
+                    None => return Err(RuntimeError::IntegerOverflow),
+                };
                 self.stack.top().push(Val::Int(res));
                 Ok(())
             }
@@ -446,7 +453,10 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     fn mul(&mut self) -> Result<(), RuntimeError> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
-                let res = y.to_i64() * x.to_i64();
+                let res = match y.to_i64().checked_mul(x.to_i64()) {
+                    Some(v) => v,
+                    None => return Err(RuntimeError::IntegerOverflow),
+                };
                 self.stack.top().push(Val::Int(res));
                 Ok(())
             }
