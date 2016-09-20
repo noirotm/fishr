@@ -53,10 +53,6 @@ impl ValStack {
         self.values.len()
     }
 
-    pub fn has_at_least(&self, n: usize) -> bool {
-        self.values.len() >= n
-    }
-
     pub fn push(&mut self, val: Val) {
         self.values.push(val);
     }
@@ -241,19 +237,6 @@ mod tests {
             assert_eq!(stack.len(), 3);
             assert_eq!(stack.values,
                        vec![Val::Byte(5), Val::Int(42), Val::Float(5.8)]);
-        }
-
-        #[test]
-        fn has_at_least_works() {
-            let mut stack = ValStack::new();
-            stack.push(Val::Byte(5));
-            stack.push(Val::Int(42));
-            stack.push(Val::Float(5.8));
-
-            assert!(stack.has_at_least(1));
-            assert!(stack.has_at_least(2));
-            assert!(stack.has_at_least(3));
-            assert!(!stack.has_at_least(4));
         }
 
         #[test]
