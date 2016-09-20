@@ -897,3 +897,73 @@ fn switch_register_with_empty_stack_fails() {
 
     assert_eq!(result, Err(RuntimeError::StackUnderflow));
 }
+
+#[test]
+fn read_memory_works() {
+    let cb = CodeBox::load_from_string("50g; 8");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert_eq!(interpreter.stack.top().values, vec![Val::Byte(56)]);
+}
+
+#[test]
+fn read_memory_outside_codebox_pushes_zero() {
+    let cb = CodeBox::load_from_string("99g 09-09-g;");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert_eq!(interpreter.stack.top().values, vec![Val::Byte(0), Val::Byte(0)]);
+}
+
+#[test]
+fn read_memory_with_empty_stack_fails() {
+    let mut out = Vec::new();
+    let cb = CodeBox::load_from_string("g;");
+
+    let mut interpreter = Interpreter::new(empty(), &mut out);
+
+    let result = interpreter.run(&cb);
+
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
+}
+
+#[test]
+fn read_memory_with_one_element_fails() {
+    let mut out = Vec::new();
+    let cb = CodeBox::load_from_string("0g;");
+
+    let mut interpreter = Interpreter::new(empty(), &mut out);
+
+    let result = interpreter.run(&cb);
+
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
+}
+
+#[test]
+fn write_memory_works() {
+    let cb = CodeBox::load_from_string("599p 99g;");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert_eq!(interpreter.stack.top().values, vec![Val::Byte(5)]);
+    assert_eq!(interpreter.memory[&MemPos{x: 9, y: 9}], Val::Byte(5));
+}
+
+#[test]
+fn write_memory_with_empty_stack_fails() {
+    let mut out = Vec::new();
+    let cb = CodeBox::load_from_string("p;");
+
+    let mut interpreter = Interpreter::new(empty(), &mut out);
+
+    let result = interpreter.run(&cb);
+
+    assert_eq!(result, Err(RuntimeError::StackUnderflow));
+}

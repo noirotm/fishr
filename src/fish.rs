@@ -1,4 +1,5 @@
 use std::cmp;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
@@ -71,7 +72,7 @@ impl CodeBox {
     }
 }
 
-#[derive(Clone,Eq,PartialEq,Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Direction {
     Right,
     Left,
@@ -89,7 +90,7 @@ pub enum RuntimeStatus {
     Stop,
 }
 
-#[derive(Eq,PartialEq,Debug,)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum RuntimeError {
     InvalidInstruction,
     InvalidIpPosition,
@@ -104,10 +105,17 @@ enum ParserState {
     DoubleQuoted,
 }
 
+#[derive(Hash, Eq, PartialEq, Debug)]
+pub struct MemPos {
+    pub x: i64,
+    pub y: i64,
+}
+
 pub struct Interpreter<R: Read, W: Write> {
     pub ip: InstructionPtr,
     pub dir: Direction,
     pub stack: StackOfStacks,
+    pub memory: HashMap<MemPos, Val>,
 
     input: Bytes<R>,
     output: W,
@@ -125,6 +133,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             output: output,
             rng: thread_rng(),
             state: ParserState::Normal,
+            memory: HashMap::new(),
         }
     }
 
@@ -156,8 +165,15 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     }
 
     pub fn fetch(&self, code: &CodeBox) -> Option<u8> {
-        // here be R/W codebox override (backed by a map)
-        code.get(self.ip.chr, self.ip.line)
+        // R/W codebox override (backed by a map)
+        let pos = MemPos {
+            x: self.ip.chr as i64,
+            y: self.ip.line as i64,
+        };
+        match self.memory.get(&pos) {
+            Some(v) => Some(v.to_u8()),
+            None => code.get(self.ip.chr, self.ip.line),
+        }
     }
 
     pub fn execute(&mut self,
@@ -300,6 +316,12 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             // register operation
             '&' => try!(self.stack.top().switch_register().or(Err(RuntimeError::StackUnderflow))),
+
+            // # Memory operations
+            // Push from memory
+            'g' => try!(self.read_memory(code)),
+            // Pop to memory
+            'p' => try!(self.write_memory()),
 
             // end execution
             ';' => return Ok(RuntimeStatus::Stop),
@@ -530,6 +552,39 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             None => self.stack.top().push(Val::Int(-1)),
         }
         Ok(())
+    }
+
+    fn read_memory(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
+        match (self.stack.top().pop(), self.stack.top().pop()) {
+            (Some(y), Some(x)) => {
+                let pos = MemPos {
+                    x: x.to_i64(),
+                    y: y.to_i64(),
+                };
+                let val = match self.memory.get(&pos) {
+                    Some(&v) => v,
+                    None => Val::Byte(code.get(pos.x as usize, pos.y as usize).unwrap_or(0)),
+                };
+                self.stack.top().push(val);
+                Ok(())
+            }
+            _ => Err(RuntimeError::StackUnderflow),
+        }
+    }
+
+    fn write_memory(&mut self) -> Result<(), RuntimeError> {
+        match (self.stack.top().pop(), self.stack.top().pop(), self.stack.top().pop()) {
+            (Some(y), Some(x), Some(v)) => {
+                let pos = MemPos {
+                    x: x.to_i64(),
+                    y: y.to_i64(),
+                };
+
+                self.memory.insert(pos, v);
+                Ok(())
+            }
+            _ => Err(RuntimeError::StackUnderflow),
+        }
     }
 }
 
