@@ -29,4 +29,6 @@ fn main() {
         println!("something smells fishy...");
         process::exit(3);
     }
+
+    println!("");
 }
