@@ -425,11 +425,11 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     fn add(&mut self) -> Result<(), RuntimeError> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
-                let res = match y.to_i64().checked_add(x.to_i64()) {
+                let res = match y.checked_add(x) {
                     Some(v) => v,
                     None => return Err(RuntimeError::IntegerOverflow),
                 };
-                self.stack.top().push(Val::Int(res));
+                self.stack.top().push(res);
                 Ok(())
             }
             _ => Err(RuntimeError::StackUnderflow),
@@ -439,11 +439,11 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     fn sub(&mut self) -> Result<(), RuntimeError> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
-                let res = match y.to_i64().checked_sub(x.to_i64()) {
+                let res = match y.checked_sub(x) {
                     Some(v) => v,
                     None => return Err(RuntimeError::IntegerOverflow),
                 };
-                self.stack.top().push(Val::Int(res));
+                self.stack.top().push(res);
                 Ok(())
             }
             _ => Err(RuntimeError::StackUnderflow),
@@ -453,11 +453,11 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     fn mul(&mut self) -> Result<(), RuntimeError> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
-                let res = match y.to_i64().checked_mul(x.to_i64()) {
+                let res = match y.checked_mul(x) {
                     Some(v) => v,
                     None => return Err(RuntimeError::IntegerOverflow),
                 };
-                self.stack.top().push(Val::Int(res));
+                self.stack.top().push(res);
                 Ok(())
             }
             _ => Err(RuntimeError::StackUnderflow),

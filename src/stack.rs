@@ -29,6 +29,42 @@ impl Val {
             Val::Float(val) => val,
         }
     }
+
+    pub fn checked_add(&self, other: Val) -> Option<Val> {
+        match (*self, other) {
+            (Val::Float(f), v) => {
+                Some(Val::Float(f + v.to_f64()))
+            },
+            (v, Val::Float(f)) => {
+                Some(Val::Float(v.to_f64() + f))
+            },
+            _ => self.to_i64().checked_add(other.to_i64()).map(|v| Val::Int(v))
+        }
+    }
+
+    pub fn checked_sub(&self, other: Val) -> Option<Val> {
+        match (*self, other) {
+            (Val::Float(f), v) => {
+                Some(Val::Float(f - v.to_f64()))
+            },
+            (v, Val::Float(f)) => {
+                Some(Val::Float(v.to_f64() - f))
+            },
+            _ => self.to_i64().checked_sub(other.to_i64()).map(|v| Val::Int(v))
+        }
+    }
+
+    pub fn checked_mul(&self, other: Val) -> Option<Val> {
+        match (*self, other) {
+            (Val::Float(f), v) => {
+                Some(Val::Float(f * v.to_f64()))
+            },
+            (v, Val::Float(f)) => {
+                Some(Val::Float(v.to_f64() * f))
+            },
+            _ => self.to_i64().checked_mul(other.to_i64()).map(|v| Val::Int(v))
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
