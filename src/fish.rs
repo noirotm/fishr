@@ -9,8 +9,11 @@ use std::path::Path;
 extern crate rand;
 use rand::{Rng, ThreadRng, thread_rng};
 
+mod val;
+pub use val::Val;
+
 mod stack;
-pub use stack::{Val, StackOfStacks, ValStack};
+pub use stack::{StackOfStacks, Stack};
 
 pub struct CodeBox {
     data: Vec<Vec<u8>>,
@@ -115,7 +118,7 @@ pub struct MemPos {
 pub struct Interpreter<R: Read, W: Write> {
     pub ip: InstructionPtr,
     pub dir: Direction,
-    pub stack: StackOfStacks,
+    pub stack: StackOfStacks<Val>,
     pub memory: HashMap<MemPos, Val>,
 
     input: Bytes<R>,
