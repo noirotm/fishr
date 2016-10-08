@@ -914,6 +914,17 @@ fn read_memory_outside_codebox_pushes_zero() {
 }
 
 #[test]
+fn read_memory_with_space_pushes_zero() {
+    let cb = CodeBox::load_from_string(" 00g;");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert_eq!(interpreter.stack.top().values, vec![Val::Byte(0)]);
+}
+
+#[test]
 fn read_memory_with_empty_stack_fails() {
     let mut out = Vec::new();
     let cb = CodeBox::load_from_string("g;");

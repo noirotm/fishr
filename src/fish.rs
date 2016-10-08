@@ -577,7 +577,10 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                 };
                 let val = match self.memory.get(&pos) {
                     Some(&v) => v,
-                    None => Val::Byte(code.get(pos.x as usize, pos.y as usize).unwrap_or(0)),
+                    None => Val::Byte(match code.get(pos.x as usize, pos.y as usize) {
+                        Some(b' ') | None => 0,
+                        Some(b) => b,
+                    }),
                 };
                 self.stack.top().push(val);
                 Ok(())
