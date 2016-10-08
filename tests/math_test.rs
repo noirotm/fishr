@@ -101,3 +101,17 @@ fn mul_int_and_float_yields_float() {
     assert!(result.is_ok());
     assert_eq!(interpreter.stack.top().values, vec![Val::Float(22.5)]);
 }
+
+#[test]
+fn mod_negative_value_works() {
+    // python uses true modulo whereas Rust, just like C, uses remainder.
+    // Therefore we have to check that our implementation conforms
+    // with Python's behaviour, eg. -1 % 13 = 12
+    let cb = CodeBox::load_from_string("01- d %;");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert_eq!(interpreter.stack.top().values, vec![Val::Int(12)]);
+}

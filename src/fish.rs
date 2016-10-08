@@ -483,8 +483,12 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             (Some(ref x), _) if x.to_i64() == 0 => Err(RuntimeError::DivideByZero),
 
             (Some(x), Some(y)) => {
-                let res = y.to_i64() % x.to_i64();
-                self.stack.top().push(Val::Int(res));
+                let rem = y.to_i64() % x.to_i64();
+                let modulo = match rem.checked_add(x.to_i64()) {
+                    Some(s) => s % x.to_i64(),
+                    _ => return Err(RuntimeError::IntegerOverflow),
+                };
+                self.stack.top().push(Val::Int(modulo));
                 Ok(())
             }
 
