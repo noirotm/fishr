@@ -1,7 +1,3 @@
-extern crate timebomb;
-
-use timebomb::timeout_ms;
-
 extern crate fish;
 
 use std::io::{empty, sink};
@@ -9,18 +5,15 @@ use fish::*;
 
 #[test]
 fn end_works() {
-    timeout_ms(|| {
-                   let cb = CodeBox::load_from_string(";");
-                   let mut interpreter = Interpreter::new(empty(), sink());
+    let cb = CodeBox::load_from_string(";");
+    let mut interpreter = Interpreter::new(empty(), sink());
 
-                   let result = interpreter.run(&cb);
+    let result = interpreter.run(&cb);
 
-                   assert!(result.is_ok());
-                   assert_eq!(interpreter.ip.chr, 0);
-                   assert_eq!(interpreter.ip.line, 0);
-                   assert_eq!(interpreter.dir, Direction::Right);
-               },
-               1000);
+    assert!(result.is_ok());
+    assert_eq!(interpreter.ip.chr, 0);
+    assert_eq!(interpreter.ip.line, 0);
+    assert_eq!(interpreter.dir, Direction::Right);
 }
 
 #[test]
