@@ -17,4 +17,7 @@ name = "fishr"
 path = "src/main.rs"
 
 [dependencies]
+getopts = "0.2"
 rand = "0.3"
+serde = "0.8"
+serde_json = "0.8"

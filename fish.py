@@ -7,6 +7,7 @@ More information: http://esolangs.org/wiki/Fish
 Requires python 2.7/3.2 or higher.
 """
 
+import json
 import sys
 import time
 import random
@@ -126,12 +127,34 @@ class Interpreter:
 
         # is the last outputted character a newline?
         self._newline = None
-    
+
+    def dump_state(self, instruction):
+        """
+        Dump interpreter status on stderr at each step.
+        """
+        if not instruction:
+            return
+
+        o = {}
+        o["ip"] = self._position
+        o["dir"] = {
+            (1,0): "right",
+            (-1,0): "left",
+            (0,1): "down",
+            (0,-1): "up",
+        }[self._direction]
+        o["next_instr"] = chr(instruction) if instruction else ' '
+        o["stack"] = self._stack
+        o["register"] = self._register_stack[0]
+
+        sys.stderr.write(json.dumps(o, separators=(',', ':')) + "\n")
+
     def move(self):
         """
         Move one step in the execution process, and handle the instruction (if
         any) at the new position.
         """
+
         # move one step in the current direction
         self._position[0] += self._direction[0]
         self._position[1] += self._direction[1]
@@ -156,6 +179,9 @@ class Interpreter:
         # execute the instruction found
         if not self._skip:
             instruction = int(self._codebox[self._position[1]][self._position[0]])
+
+            #self.dump_state(instruction)
+
             # the current position might not be a valid character
             try:
                 # use space if current cell is 0

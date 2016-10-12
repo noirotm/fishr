@@ -6,6 +6,12 @@ use std::io::prelude::*;
 use std::io::{BufReader, Bytes};
 use std::path::Path;
 
+extern crate serde;
+extern crate serde_json;
+
+use serde_json::{Map, to_value};
+use serde_json::Value;
+
 extern crate rand;
 use rand::{Rng, ThreadRng, thread_rng};
 
@@ -14,6 +20,13 @@ pub use val::Val;
 
 mod stack;
 pub use stack::{StackOfStacks, Stack};
+
+macro_rules! println_stderr(
+    ($($arg:tt)*) => { {
+        let r = writeln!(&mut ::std::io::stderr(), $($arg)*);
+        r.expect("failed printing to stderr");
+    } }
+);
 
 pub struct CodeBox {
     data: Vec<Vec<u8>>,
@@ -121,6 +134,8 @@ pub struct Interpreter<R: Read, W: Write> {
     pub stack: StackOfStacks<Val>,
     pub memory: HashMap<MemPos, Val>,
 
+    pub trace: bool,
+
     input: Bytes<R>,
     output: W,
     rng: ThreadRng,
@@ -133,11 +148,13 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             ip: InstructionPtr { chr: 0, line: 0 },
             dir: Direction::Right,
             stack: StackOfStacks::new(),
+            memory: HashMap::new(),
+            trace: false,
             input: input.bytes(),
             output: output,
             rng: thread_rng(),
             state: ParserState::Normal,
-            memory: HashMap::new(),
+
         }
     }
 
@@ -145,6 +162,46 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         self.ip = InstructionPtr { chr: 0, line: 0 };
         self.dir = Direction::Right;
         self.state = ParserState::Normal;
+    }
+
+    pub fn dump_state(&mut self, instruction: u8) {
+        if instruction == b' ' {
+            return;
+        }
+
+        let mut map = Map::new();
+
+        // ip
+        let ip = vec![self.ip.chr, self.ip.line];
+        map.insert("ip", to_value(ip));
+        map.insert("dir", to_value(match self.dir {
+            Direction::Right => "right",
+            Direction::Left => "left",
+            Direction::Up => "up",
+            Direction::Down => "down",
+        }));
+
+        // next instruction
+        map.insert("next_instr", to_value(instruction as char));
+
+        // stack
+        let vals: Vec<_> = self.stack.top().values.iter().map(|val| match *val {
+            Val::Byte(val) => to_value(val),
+            Val::Int(val) => to_value(val),
+            Val::Float(val) => to_value(val),
+        }).collect();
+        let reg = self.stack.top().register.map_or(Value::Null, |val| match val {
+            Val::Byte(val) => to_value(val),
+            Val::Int(val) => to_value(val),
+            Val::Float(val) => to_value(val),
+        });
+        map.insert("stack", to_value(vals));
+
+        // register
+        map.insert("register", to_value(reg));
+
+        let s = serde_json::to_string(&map).unwrap();
+        println_stderr!("{}", s);
     }
 
     pub fn run(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
@@ -155,8 +212,9 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                 None => return Err(RuntimeError::InvalidIpPosition),
             };
 
-            // println!("{:?}", self.stack.stacks[0].values);
-            // println!("[{}, {}] => {}", self.ip.chr, self.ip.line, instruction as char);
+            if self.trace {
+                self.dump_state(instruction);
+            }
 
             match self.execute(instruction, code) {
                 Ok(RuntimeStatus::Continue) => {}
