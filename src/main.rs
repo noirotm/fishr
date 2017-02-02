@@ -15,7 +15,7 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 fn print_version() {
-    println!("{} version {}\nCopyright © 2016 - Marc Noirot", NAME, VERSION);
+    println!("{} version {}\nCopyright © 2017 - Marc Noirot", NAME, VERSION);
 }
 
 fn main() {
