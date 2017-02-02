@@ -81,31 +81,29 @@ impl fmt::Display for Val {
 
 #[cfg(test)]
 mod tests {
-    mod val {
-        use super::super::*;
+    use super::*;
 
-        #[test]
-        fn val_to_u8_works() {
-            let val = Val::Byte(15);
-            assert_eq!(val.to_u8(), 15);
+    #[test]
+    fn val_to_u8_works() {
+        let val = Val::Byte(15);
+        assert_eq!(val.to_u8(), 15);
 
-            let val = Val::Int(54);
-            assert_eq!(val.to_u8(), 54);
-        }
+        let val = Val::Int(54);
+        assert_eq!(val.to_u8(), 54);
+    }
 
-        #[test]
-        fn val_to_i64_works() {
-            let val = Val::Byte(15);
-            assert_eq!(val.to_i64(), 15);
+    #[test]
+    fn val_to_i64_works() {
+        let val = Val::Byte(15);
+        assert_eq!(val.to_i64(), 15);
 
-            let val = Val::Int(54);
-            assert_eq!(val.to_i64(), 54)
-        }
+        let val = Val::Int(54);
+        assert_eq!(val.to_i64(), 54)
+    }
 
-        #[test]
-        fn val_to_f64_works() {
-            let val = Val::Byte(15);
-            assert_eq!(val.to_f64(), 15.0);
-        }
+    #[test]
+    fn val_to_f64_works() {
+        let val = Val::Byte(15);
+        assert_eq!(val.to_f64(), 15.0);
     }
 }
