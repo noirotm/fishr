@@ -204,6 +204,12 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         println_stderr!("{}", s);
     }
 
+    pub fn push_str(&mut self, s: &str) {
+        for c in s.bytes() {
+            self.stack.top().push(Val::Byte(c as u8));
+        }
+    }
+
     pub fn run(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
         self.reset();
         loop {
@@ -668,6 +674,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
 #[cfg(test)]
 mod tests {
+    use std::io::{empty, sink};
     use super::*;
 
     #[test]
@@ -705,5 +712,16 @@ mod tests {
         assert_eq!(cb.height, 0);
         assert_eq!(cb.width, 0);
         assert!(cb.data.is_empty());
+    }
+
+    #[test]
+    fn push_str_works() {
+        let mut interpreter = Interpreter::new(empty(), sink());
+        interpreter.push_str("foo bar");
+
+        assert_eq!(interpreter.stack.top().values,
+            vec![Val::Byte(b'f'), Val::Byte(b'o'), Val::Byte(b'o'),
+                 Val::Byte(b' '),
+                 Val::Byte(b'b'), Val::Byte(b'a'), Val::Byte(b'r'),]);
     }
 }

@@ -75,6 +75,11 @@ fn main() {
 
     let mut fish = fish::Interpreter::new(input, output);
 
+    for c in &matches.opt_strs("s") {
+        fish.push_str(c);
+    }
+
+
     if matches.opt_present("d") {
         fish.trace = true;
     }
