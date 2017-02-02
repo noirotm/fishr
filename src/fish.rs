@@ -36,14 +36,14 @@ pub struct CodeBox {
 
 impl CodeBox {
     pub fn load_from_file<P: AsRef<Path>>(filename: P) -> Result<CodeBox, Box<Error>> {
-        let f = try!(File::open(filename));
+        let f = File::open(filename)?;
         let mut code_box = CodeBox {
             data: vec![],
             width: 0,
             height: 0,
         };
         for line in BufReader::new(f).lines() {
-            let line = try!(line);
+            let line = line?;
             code_box.push(line.as_bytes().to_vec());
         }
         Ok(code_box)
@@ -310,7 +310,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             }
 
             // jump to (x,y)
-            '.' => try!(self.jump(code)),
+            '.' => self.jump(code)?,
 
             // # Literals and operators
             // literal values
@@ -321,26 +321,26 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             }
 
             // arithmetic operations
-            '+' => try!(self.add()),
-            '-' => try!(self.sub()),
-            '*' => try!(self.mul()),
-            ',' => try!(self.div()),
-            '%' => try!(self.rem()),
+            '+' => self.add()?,
+            '-' => self.sub()?,
+            '*' => self.mul()?,
+            ',' => self.div()?,
+            '%' => self.rem()?,
 
             // comparison tests
-            '=' => try!(self.equals()),
-            ')' => try!(self.gt()),
-            '(' => try!(self.lt()),
+            '=' => self.equals()?,
+            ')' => self.gt()?,
+            '(' => self.lt()?,
 
             // # Stack manipulation
             // Duplicate the top value on the stack
-            ':' => try!(self.stack.top().dup().or(Err(RuntimeError::StackUnderflow))),
+            ':' => self.stack.top().dup().or(Err(RuntimeError::StackUnderflow))?,
             // Remove the top value from the stack
-            '~' => try!(self.stack.top().drop().or(Err(RuntimeError::StackUnderflow))),
+            '~' => self.stack.top().drop().or(Err(RuntimeError::StackUnderflow))?,
             // Swap the top two values on the stack
-            '$' => try!(self.stack.top().swap().or(Err(RuntimeError::StackUnderflow))),
+            '$' => self.stack.top().swap().or(Err(RuntimeError::StackUnderflow))?,
             // Swap the top three values on the stack
-            '@' => try!(self.stack.top().swap2().or(Err(RuntimeError::StackUnderflow))),
+            '@' => self.stack.top().swap2().or(Err(RuntimeError::StackUnderflow))?,
             // Shift the entire stack to the right
             '}' => self.stack.top().rshift(),
             // Shift the entire stack to the left
@@ -370,20 +370,20 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             // # I/O
             // Output value as character
-            'o' => try!(self.char_output()),
+            'o' => self.char_output()?,
             // Output value as number
-            'n' => try!(self.num_output()),
+            'n' => self.num_output()?,
             // Input byte
-            'i' => try!(self.input()),
+            'i' => self.input()?,
 
             // register operation
-            '&' => try!(self.stack.top().switch_register().or(Err(RuntimeError::StackUnderflow))),
+            '&' => self.stack.top().switch_register().or(Err(RuntimeError::StackUnderflow))?,
 
             // # Memory operations
             // Push from memory
-            'g' => try!(self.read_memory(code)),
+            'g' => self.read_memory(code)?,
             // Pop to memory
-            'p' => try!(self.write_memory()),
+            'p' => self.write_memory()?,
 
             // end execution
             ';' => return Ok(RuntimeStatus::Stop),
