@@ -84,5 +84,5 @@ fn main() {
         process::exit(3);
     }
 
-    println!("");
+    println!();
 }
