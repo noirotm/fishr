@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{BufReader, Bytes};
+use std::io::{BufReader, Bytes, stderr};
 use std::path::Path;
 
 extern crate serde;
-extern crate serde_json;
 
-use serde_json::{Map, to_value};
-use serde_json::Value;
+#[macro_use]
+extern crate serde_json;
+use serde_json::{Value, to_value};
 
 extern crate rand;
 use rand::{Rng, ThreadRng, thread_rng};
@@ -20,13 +20,6 @@ pub use val::Val;
 
 mod stack;
 pub use stack::{StackOfStacks, Stack};
-
-macro_rules! println_stderr(
-    ($($arg:tt)*) => { {
-        let r = writeln!(&mut ::std::io::stderr(), $($arg)*);
-        r.expect("failed printing to stderr");
-    } }
-);
 
 pub struct CodeBox {
     data: Vec<Vec<u8>>,
@@ -169,39 +162,32 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             return;
         }
 
-        let mut map = Map::new();
+        let state = json!({
+            "ip": vec![self.ip.chr, self.ip.line],
 
-        // ip
-        let ip = vec![self.ip.chr, self.ip.line];
-        map.insert("ip", to_value(ip));
-        map.insert("dir", to_value(match self.dir {
-            Direction::Right => "right",
-            Direction::Left => "left",
-            Direction::Up => "up",
-            Direction::Down => "down",
-        }));
+            "dir": match self.dir {
+                Direction::Right => "right",
+                Direction::Left => "left",
+                Direction::Up => "up",
+                Direction::Down => "down",
+            },
 
-        // next instruction
-        map.insert("next_instr", to_value(instruction as char));
+            "next_instr": instruction as char,
 
-        // stack
-        let vals: Vec<_> = self.stack.top().values.iter().map(|val| match *val {
-            Val::Byte(val) => to_value(val),
-            Val::Int(val) => to_value(val),
-            Val::Float(val) => to_value(val),
-        }).collect();
-        let reg = self.stack.top().register.map_or(Value::Null, |val| match val {
-            Val::Byte(val) => to_value(val),
-            Val::Int(val) => to_value(val),
-            Val::Float(val) => to_value(val),
+            "stack": self.stack.top().values.iter().map(|val| match *val {
+                Val::Byte(val) => to_value(val),
+                Val::Int(val) => to_value(val),
+                Val::Float(val) => to_value(val),
+            }.unwrap_or(Value::Null)).collect::<Vec<_>>(),
+
+            "register": self.stack.top().register.map_or(Value::Null, |val| match val {
+                Val::Byte(val) => to_value(val),
+                Val::Int(val) => to_value(val),
+                Val::Float(val) => to_value(val),
+            }.unwrap_or(Value::Null)),
         });
-        map.insert("stack", to_value(vals));
 
-        // register
-        map.insert("register", to_value(reg));
-
-        let s = serde_json::to_string(&map).unwrap();
-        println_stderr!("{}", s);
+        writeln!(&mut stderr(), "{}", state.to_string()).unwrap();
     }
 
     pub fn push_str(&mut self, s: &str) {
