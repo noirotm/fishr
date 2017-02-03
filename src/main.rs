@@ -50,7 +50,7 @@ fn main() {
         process::exit(1);
     }
 
-    let codebox = match matches.opt_str("c") {
+    let code_box = match matches.opt_str("c") {
         Some(c) => fish::CodeBox::load_from_string(&c),
         _ => {
             let input = if !matches.free.is_empty() {
@@ -79,7 +79,7 @@ fn main() {
         fish.trace = true;
     }
 
-    if fish.run(&codebox).is_err() {
+    if fish.run(&code_box).is_err() {
         println!("something smells fishy...");
         process::exit(3);
     }
