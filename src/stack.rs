@@ -406,7 +406,7 @@ mod tests {
             assert!(res.is_ok());
 
             assert_eq!(s.stacks.len(), 2);
-            assert_eq!(s.stacks[0].values, vec![]);
+            assert_eq!(s.stacks[0].values, vec![0; 0]);
             assert_eq!(s.stacks[1].values, vec![5, 42, 58]);
             assert_eq!(s.stacks[1].register, None);
         }
@@ -424,7 +424,7 @@ mod tests {
 
             assert_eq!(s.stacks.len(), 2);
             assert_eq!(s.stacks[0].values, vec![5, 42, 58]);
-            assert_eq!(s.stacks[1].values, vec![]);
+            assert_eq!(s.stacks[1].values, vec![0; 0]);
             assert_eq!(s.stacks[1].register, None);
         }
 
@@ -503,7 +503,7 @@ mod tests {
             s.pop_stack();
 
             assert_eq!(s.stacks.len(), 1);
-            assert_eq!(s.stacks[0].values, vec![]);
+            assert_eq!(s.stacks[0].values, vec![0; 0]);
             assert_eq!(s.stacks[0].register, None);
         }
     }
