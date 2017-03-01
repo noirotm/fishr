@@ -79,6 +79,16 @@ fn main() {
         fish.push_str(c);
     }
 
+    for c in &matches.opt_strs("v") {
+        let n = match c.parse::<i64>() {
+            Ok(v) => v,
+            Err(e) => {
+                println!("Error: {}", e);
+                process::exit(2);
+            }
+        };
+        fish.push_i64(n);
+    }
 
     if matches.opt_present("d") {
         fish.trace = true;

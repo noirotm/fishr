@@ -196,6 +196,10 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         }
     }
 
+    pub fn push_i64(&mut self, v: i64) {
+        self.stack.top().push(Val::Int(v));
+    }
+
     pub fn run(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
         self.reset();
         loop {
@@ -708,6 +712,17 @@ mod tests {
         assert_eq!(interpreter.stack.top().values,
             vec![Val::Byte(b'f'), Val::Byte(b'o'), Val::Byte(b'o'),
                  Val::Byte(b' '),
-                 Val::Byte(b'b'), Val::Byte(b'a'), Val::Byte(b'r'),]);
+                 Val::Byte(b'b'), Val::Byte(b'a'), Val::Byte(b'r')]);
+    }
+
+    #[test]
+    fn push_i64_works() {
+        let mut interpreter = Interpreter::new(empty(), sink());
+        interpreter.push_i64(5);
+        interpreter.push_i64(25);
+        interpreter.push_i64(-45);
+
+        assert_eq!(interpreter.stack.top().values,
+        vec![Val::Int(5), Val::Int(25), Val::Int(-45)]);
     }
 }
