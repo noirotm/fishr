@@ -707,7 +707,9 @@ mod tests {
     #[test]
     fn push_str_works() {
         let mut interpreter = Interpreter::new(empty(), sink());
-        interpreter.push_str("foo bar");
+        interpreter.push_str("foo");
+        interpreter.push_str(" ");
+        interpreter.push_str("bar");
 
         assert_eq!(interpreter.stack.top().values,
             vec![Val::Byte(b'f'), Val::Byte(b'o'), Val::Byte(b'o'),
