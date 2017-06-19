@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{BufReader, Bytes, stderr};
+use std::io::{BufReader, Bytes, Cursor, stderr};
 use std::path::Path;
 
 extern crate serde;
@@ -28,30 +28,27 @@ pub struct CodeBox {
 }
 
 impl CodeBox {
-    pub fn load_from_file<P: AsRef<Path>>(filename: P) -> Result<CodeBox, Box<Error>> {
-        let f = File::open(filename)?;
+    pub fn load<R: Read>(r: R) -> Result<CodeBox, Box<Error>> {
         let mut code_box = CodeBox {
             data: vec![],
             width: 0,
             height: 0,
         };
-        for line in BufReader::new(f).lines() {
+        for line in BufReader::new(r).lines() {
             let line = line?;
             code_box.push(line.as_bytes().to_vec());
         }
         Ok(code_box)
     }
 
+    pub fn load_from_file<P: AsRef<Path>>(filename: P) -> Result<CodeBox, Box<Error>> {
+        let f = File::open(filename)?;
+        Self::load(f)
+    }
+
     pub fn load_from_string(s: &str) -> CodeBox {
-        let mut code_box = CodeBox {
-            data: vec![],
-            width: 0,
-            height: 0,
-        };
-        for line in s.lines() {
-            code_box.push(line.as_bytes().to_vec());
-        }
-        code_box
+        let b = Cursor::new(s);
+        Self::load(b).expect("CodeBox::load_from_string failed")
     }
 
     pub fn width(&self) -> usize {
