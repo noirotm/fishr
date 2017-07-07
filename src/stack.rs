@@ -3,12 +3,16 @@ pub enum Error {
     StackUnderflow,
 }
 
-pub struct Stack<T> where T: Copy {
+pub struct Stack<T>
+    where T: Copy
+{
     pub values: Vec<T>,
     pub register: Option<T>,
 }
 
-impl<T> Stack<T> where T: Copy {
+impl<T> Stack<T>
+    where T: Copy
+{
     pub fn new() -> Stack<T> {
         Stack {
             values: Vec::new(),
@@ -30,10 +34,12 @@ impl<T> Stack<T> where T: Copy {
 
     pub fn switch_register(&mut self) -> Result<(), Error> {
         match self.register.take() {
-            None => match self.pop() {
-                Some(val) => self.register = Some(val),
-                None => return Err(Error::StackUnderflow),
-            },
+            None => {
+                match self.pop() {
+                    Some(val) => self.register = Some(val),
+                    None => return Err(Error::StackUnderflow),
+                }
+            }
             Some(val) => self.push(val),
         }
 
@@ -110,11 +116,15 @@ impl<T> Stack<T> where T: Copy {
     }
 }
 
-pub struct StackOfStacks<T> where T: Copy {
+pub struct StackOfStacks<T>
+    where T: Copy
+{
     pub stacks: Vec<Stack<T>>,
 }
 
-impl<T> StackOfStacks<T> where T: Copy {
+impl<T> StackOfStacks<T>
+    where T: Copy
+{
     pub fn new() -> StackOfStacks<T> {
         StackOfStacks { stacks: vec![Stack::<T>::new()] /* there is always at least one stack */ }
     }

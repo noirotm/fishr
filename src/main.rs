@@ -15,7 +15,9 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 fn print_version() {
-    println!("{} version {}\nCopyright © 2017 - Marc Noirot", NAME, VERSION);
+    println!("{} version {}\nCopyright © 2017 - Marc Noirot",
+             NAME,
+             VERSION);
 }
 
 fn main() {
@@ -23,12 +25,28 @@ fn main() {
     let program = args[0].clone();
 
     let mut opts = Options::new();
-    opts.optopt("c", "code", "string of instructions to execute instead of FILE", "CODE");
-    opts.optmulti("s", "string", "push strings onto the stack before execution starts", "STRING");
-    opts.optmulti("v", "value", "push numbers onto the stack before execution starts", "NUMBER");
-    opts.optopt("t", "tick", "define a delay between the execution of each instruction", "DELAY");
-    opts.optflag("a", "always-tick", "make every instruction cause a tick, even whitespace and skipped instructions");
-    opts.optflag("d", "debug", "dump interpreter state before executing an instruction");
+    opts.optopt("c",
+                "code",
+                "string of instructions to execute instead of FILE",
+                "CODE");
+    opts.optmulti("s",
+                  "string",
+                  "push strings onto the stack before execution starts",
+                  "STRING");
+    opts.optmulti("v",
+                  "value",
+                  "push numbers onto the stack before execution starts",
+                  "NUMBER");
+    opts.optopt("t",
+                "tick",
+                "define a delay between the execution of each instruction",
+                "DELAY");
+    opts.optflag("a",
+                 "always-tick",
+                 "make every instruction cause a tick, even whitespace and skipped instructions");
+    opts.optflag("d",
+                 "debug",
+                 "dump interpreter state before executing an instruction");
     opts.optflag("h", "help", "print this help menu");
     opts.optflag("V", "version", "print the program version and exit");
 
@@ -38,7 +56,7 @@ fn main() {
             println!("Error: {}\n", e);
             print_usage(&program, opts);
             process::exit(1);
-        },
+        }
     };
     if matches.opt_present("h") {
         print_usage(&program, opts);

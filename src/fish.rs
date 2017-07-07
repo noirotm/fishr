@@ -276,10 +276,8 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             // random direction
             'x' => {
-                static DIRECTIONS: [Direction; 4] = [Direction::Left,
-                                                     Direction::Right,
-                                                     Direction::Up,
-                                                     Direction::Down];
+                static DIRECTIONS: [Direction; 4] =
+                    [Direction::Left, Direction::Right, Direction::Up, Direction::Down];
 
                 if let Some(dir) = self.rng.choose(&DIRECTIONS) {
                     self.dir = dir.clone();
