@@ -962,12 +962,33 @@ fn write_memory_works() {
 
 #[test]
 fn write_memory_with_empty_stack_fails() {
-    let mut out = Vec::new();
     let cb = CodeBox::load_from_string("p;");
-
-    let mut interpreter = Interpreter::new(empty(), &mut out);
+    let mut interpreter = Interpreter::new(empty(), sink());
 
     let result = interpreter.run(&cb);
 
     assert_eq!(result, Err(RuntimeError::StackUnderflow));
+}
+
+#[test]
+fn write_memory_with_current_value_is_nop() {
+    let cb = CodeBox::load_from_string("78*80p; 8");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert!(interpreter.memory.is_empty());
+}
+
+#[test]
+fn write_memory_with_negative_coordinates_works() {
+    let cb = CodeBox::load_from_string("509-09-p 09-09-g;");
+    let mut interpreter = Interpreter::new(empty(), sink());
+
+    let result = interpreter.run(&cb);
+
+    assert!(result.is_ok());
+    assert_eq!(interpreter.stack.top().values, vec![Val::Byte(5)]);
+    assert_eq!(interpreter.memory[&MemPos{x: -9, y: -9}], Val::Byte(5));
 }

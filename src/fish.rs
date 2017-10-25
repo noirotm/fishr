@@ -130,6 +130,7 @@ pub struct Interpreter<R: Read, W: Write> {
     output: W,
     rng: ThreadRng,
     state: ParserState,
+    memory_is_dirty: bool,
 }
 
 impl<R: Read, W: Write> Interpreter<R, W> {
@@ -144,7 +145,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             output: output,
             rng: thread_rng(),
             state: ParserState::Normal,
-
+            memory_is_dirty: false,
         }
     }
 
@@ -220,6 +221,11 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     }
 
     pub fn fetch(&self, code: &CodeBox) -> Option<u8> {
+        // don't fetch from map is memory is pristine
+        if !self.memory_is_dirty {
+            return code.get(self.ip.chr, self.ip.line);
+        }
+
         // R/W codebox override (backed by a map)
         let pos = MemPos {
             x: self.ip.chr as i64,
@@ -374,7 +380,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // Push from memory
             'g' => self.read_memory(code)?,
             // Pop to memory
-            'p' => self.write_memory()?,
+            'p' => self.write_memory(code)?,
 
             // end execution
             ';' => return Ok(RuntimeStatus::Stop),
@@ -629,10 +635,12 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                 };
                 let val = match self.memory.get(&pos) {
                     Some(&v) => v,
-                    None => Val::Byte(match code.get(pos.x as usize, pos.y as usize) {
-                        Some(b' ') | None => 0,
-                        Some(b) => b,
-                    }),
+                    None => {
+                        Val::Byte(match code.get(pos.x as usize, pos.y as usize) {
+                            Some(b' ') | None => 0,
+                            Some(b) => b,
+                        })
+                    }
                 };
                 self.stack.top().push(val);
                 Ok(())
@@ -641,7 +649,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         }
     }
 
-    fn write_memory(&mut self) -> Result<(), RuntimeError> {
+    fn write_memory(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
         match (self.stack.top().pop(), self.stack.top().pop(), self.stack.top().pop()) {
             (Some(y), Some(x), Some(v)) => {
                 let pos = MemPos {
@@ -649,7 +657,22 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                     y: y.to_i64(),
                 };
 
-                self.memory.insert(pos, v);
+                // abort if we don't actually change memory
+                let val = match self.memory.get(&pos) {
+                    Some(&v) => v,
+                    None => {
+                        Val::Byte(match code.get(pos.x as usize, pos.y as usize) {
+                            Some(b' ') | None => 0,
+                            Some(b) => b,
+                        })
+                    }
+                };
+
+                if v != val {
+                    self.memory.insert(pos, v);
+                    self.memory_is_dirty = true;
+                }
+
                 Ok(())
             }
             _ => Err(RuntimeError::StackUnderflow),
