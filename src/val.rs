@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum Val {
     Byte(u8),
     Int(i64),
@@ -57,6 +57,17 @@ impl Val {
     }
 }
 
+impl PartialEq for Val {
+    fn eq(&self, other: &Val) -> bool {
+        match (*self, *other) {
+            (Val::Float(a), Val::Float(b)) => a == b,
+            (Val::Float(_), _) => false,
+            (_, Val::Float(_)) => false,
+            _ => self.to_i64() == other.to_i64(),
+        }
+    }
+}
+
 impl fmt::Display for Val {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -93,5 +104,20 @@ mod tests {
     fn val_to_f64_works() {
         let val = Val::Byte(15);
         assert_eq!(val.to_f64(), 15.0);
+    }
+
+    #[test]
+    fn val_eq_works() {
+        assert_eq!(Val::Byte(1), Val::Byte(1));
+        assert_eq!(Val::Byte(1), Val::Int(1));
+        assert_eq!(Val::Int(1), Val::Int(1));
+        assert_eq!(Val::Float(1.0), Val::Float(1.0));
+
+        assert_ne!(Val::Byte(1), Val::Byte(2));
+        assert_ne!(Val::Int(1), Val::Int(2));
+        assert_ne!(Val::Float(1.0), Val::Float(2.0));
+
+        assert_ne!(Val::Byte(1), Val::Float(1.0));
+        assert_ne!(Val::Int(1), Val::Float(1.0));
     }
 }
