@@ -10,9 +10,9 @@ pub enum Val {
 impl Val {
     pub fn to_i64(&self) -> i64 {
         match *self {
-            Val::Byte(val) => val as i64,
+            Val::Byte(val) => i64::from(val),
             Val::Int(val) => val,
-            Val::Float(val) => val as i64,
+            Val::Float(val) => val.trunc() as i64,
         }
     }
 
@@ -20,49 +20,48 @@ impl Val {
         match *self {
             Val::Byte(val) => val,
             Val::Int(val) => val as u8,
-            Val::Float(val) => val as u8,
+            Val::Float(val) => val.trunc() as u8,
         }
     }
 
     pub fn to_f64(&self) -> f64 {
         match *self {
-            Val::Byte(val) => val as f64,
+            Val::Byte(val) => f64::from(val),
             Val::Int(val) => val as f64,
             Val::Float(val) => val,
         }
     }
 
-    pub fn checked_add(&self, other: Val) -> Option<Val> {
+    pub fn checked_add(&self, other: Self) -> Option<Val> {
         match (*self, other) {
             (Val::Float(f), v) => Some(Val::Float(f + v.to_f64())),
             (v, Val::Float(f)) => Some(Val::Float(v.to_f64() + f)),
-            _ => self.to_i64().checked_add(other.to_i64()).map(|v| Val::Int(v)),
+            _ => self.to_i64().checked_add(other.to_i64()).map(Val::Int),
         }
     }
 
-    pub fn checked_sub(&self, other: Val) -> Option<Val> {
+    pub fn checked_sub(&self, other: Self) -> Option<Val> {
         match (*self, other) {
             (Val::Float(f), v) => Some(Val::Float(f - v.to_f64())),
             (v, Val::Float(f)) => Some(Val::Float(v.to_f64() - f)),
-            _ => self.to_i64().checked_sub(other.to_i64()).map(|v| Val::Int(v)),
+            _ => self.to_i64().checked_sub(other.to_i64()).map(Val::Int),
         }
     }
 
-    pub fn checked_mul(&self, other: Val) -> Option<Val> {
+    pub fn checked_mul(&self, other: Self) -> Option<Val> {
         match (*self, other) {
             (Val::Float(f), v) => Some(Val::Float(f * v.to_f64())),
             (v, Val::Float(f)) => Some(Val::Float(v.to_f64() * f)),
-            _ => self.to_i64().checked_mul(other.to_i64()).map(|v| Val::Int(v)),
+            _ => self.to_i64().checked_mul(other.to_i64()).map(Val::Int),
         }
     }
 }
 
 impl PartialEq for Val {
-    fn eq(&self, other: &Val) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         match (*self, *other) {
             (Val::Float(a), Val::Float(b)) => a == b,
-            (Val::Float(_), _) => false,
-            (_, Val::Float(_)) => false,
+            (Val::Float(_), _) | (_, Val::Float(_)) => false,
             _ => self.to_i64() == other.to_i64(),
         }
     }

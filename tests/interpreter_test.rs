@@ -47,74 +47,74 @@ fn skip_works() {
     assert_eq!(interpreter.dir, Direction::Right);
 }
 
-fn assert_expected_direction_eq(code: &'static str, expected_dir: Direction) {
+fn assert_expected_direction_eq(code: &'static str, expected_dir: &Direction) {
     let cb = CodeBox::load_from_string(code);
     let mut interpreter = Interpreter::new(empty(), sink());
 
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.dir, expected_dir);
+    assert_eq!(interpreter.dir, *expected_dir);
 }
 
 #[test]
 fn move_right_works() {
-    assert_expected_direction_eq(">;", Direction::Right);
+    assert_expected_direction_eq(">;", &Direction::Right);
 }
 
 #[test]
 fn move_left_works() {
-    assert_expected_direction_eq("<;", Direction::Left);
+    assert_expected_direction_eq("<;", &Direction::Left);
 }
 
 #[test]
 fn move_down_works() {
-    assert_expected_direction_eq("v\n;", Direction::Down);
+    assert_expected_direction_eq("v\n;", &Direction::Down);
 }
 
 #[test]
 fn move_up_works() {
-    assert_expected_direction_eq("^\n;", Direction::Up);
+    assert_expected_direction_eq("^\n;", &Direction::Up);
 }
 
 #[test]
 fn mirror_right_to_down_works() {
-    assert_expected_direction_eq(" \\\n ;", Direction::Down);
+    assert_expected_direction_eq(" \\\n ;", &Direction::Down);
 }
 
 #[test]
 fn mirror_right_to_up_works() {
-    assert_expected_direction_eq(" /\n ;", Direction::Up);
+    assert_expected_direction_eq(" /\n ;", &Direction::Up);
 }
 
 #[test]
 fn mirror_right_to_left_works() {
-    assert_expected_direction_eq(" |;", Direction::Left);
+    assert_expected_direction_eq(" |;", &Direction::Left);
 }
 
 #[test]
 fn mirror_down_to_up_works() {
-    assert_expected_direction_eq("v\n!\n;\n_", Direction::Up);
+    assert_expected_direction_eq("v\n!\n;\n_", &Direction::Up);
 }
 
 #[test]
 fn mirror_multi_right_to_left_works() {
-    assert_expected_direction_eq(" #;", Direction::Left);
+    assert_expected_direction_eq(" #;", &Direction::Left);
 }
 
 #[test]
 fn mirror_multi_down_to_up_works() {
-    assert_expected_direction_eq("v\n!\n;\n#", Direction::Up);
+    assert_expected_direction_eq("v\n!\n;\n#", &Direction::Up);
 }
 
 #[test]
 fn mirror_multi_up_to_down_works() {
-    assert_expected_direction_eq("^\n#\n;\n!", Direction::Down);
+    assert_expected_direction_eq("^\n#\n;\n!", &Direction::Down);
 }
 
 #[test]
 fn mirror_multi_left_to_right_works() {
-    assert_expected_direction_eq("v\n<#;!", Direction::Right);
+    assert_expected_direction_eq("v\n<#;!", &Direction::Right);
 }
 
 #[test]

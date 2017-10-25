@@ -10,10 +10,18 @@ pub struct Stack<T>
     pub register: Option<T>,
 }
 
+impl<T> Default for Stack<T>
+    where T: Copy
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Stack<T>
     where T: Copy
 {
-    pub fn new() -> Stack<T> {
+    pub fn new() -> Self {
         Stack {
             values: Vec::new(),
             register: None,
@@ -22,6 +30,10 @@ impl<T> Stack<T>
 
     pub fn len(&self) -> usize {
         self.values.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
     }
 
     pub fn push(&mut self, val: T) {
@@ -122,10 +134,18 @@ pub struct StackOfStacks<T>
     pub stacks: Vec<Stack<T>>,
 }
 
+impl<T> Default for StackOfStacks<T>
+    where T: Copy
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> StackOfStacks<T>
     where T: Copy
 {
-    pub fn new() -> StackOfStacks<T> {
+    pub fn new() -> Self {
         StackOfStacks { stacks: vec![Stack::<T>::new()] /* there is always at least one stack */ }
     }
 
@@ -158,7 +178,7 @@ impl<T> StackOfStacks<T>
     }
 
     pub fn top(&mut self) -> &mut Stack<T> {
-        debug_assert!(self.stacks.len() > 0);
+        debug_assert!(!self.stacks.is_empty());
         self.stacks.last_mut().unwrap()
     }
 }
@@ -172,7 +192,7 @@ mod tests {
         fn new_works() {
             let stack = Stack::<isize>::new();
 
-            assert_eq!(stack.len(), 0);
+            assert!(stack.is_empty());
             assert_eq!(stack.register, None);
         }
 

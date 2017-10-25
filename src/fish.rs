@@ -69,12 +69,11 @@ impl CodeBox {
         if x >= self.width || y >= self.height {
             return None;
         }
-        let line = self.data.get(y).unwrap();
-        let ch = match line.get(x) {
+        let line = self.data.get(y).expect("line should not be None");
+        Some(match line.get(x) {
             Some(c) => *c,
-            None => ' ' as u8,
-        };
-        Some(ch)
+            None => b' ',
+        })
     }
 }
 
@@ -354,11 +353,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // Pop x off the stack and create a new stack, moving x values.
             '[' => {
                 match self.stack.top().pop() {
-                    Some(v) => {
-                        if let Err(_) = self.stack.push_stack(v.to_i64() as usize) {
-                            return Err(RuntimeError::StackUnderflow);
-                        }
-                    }
+                    Some(v) => self.stack.push_stack(v.to_i64() as usize).or(Err(RuntimeError::StackUnderflow))?,
                     None => return Err(RuntimeError::StackUnderflow),
                 }
             }
@@ -558,10 +553,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() == x.to_i64();
-                self.stack.top().push(Val::Byte(match res {
-                    true => 1,
-                    false => 0,
-                }));
+                self.stack.top().push(Val::Byte(if res { 1 } else { 0 }));
                 Ok(())
             }
 
@@ -573,10 +565,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() > x.to_i64();
-                self.stack.top().push(Val::Byte(match res {
-                    true => 1,
-                    false => 0,
-                }));
+                self.stack.top().push(Val::Byte(if res { 1 } else { 0 }));
                 Ok(())
             }
 
@@ -588,10 +577,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() < x.to_i64();
-                self.stack.top().push(Val::Byte(match res {
-                    true => 1,
-                    false => 0,
-                }));
+                self.stack.top().push(Val::Byte(if res { 1 } else { 0 }));
                 Ok(())
             }
 

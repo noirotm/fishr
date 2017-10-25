@@ -9,7 +9,7 @@ extern crate fish;
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-fn print_usage(program: &str, opts: Options) {
+fn print_usage(program: &str, opts: &Options) {
     let brief = format!("Usage: {} [options] FILE", program);
     print!("{}", opts.usage(&brief));
 }
@@ -54,18 +54,19 @@ fn main() {
         Ok(m) => m,
         Err(e) => {
             println!("Error: {}\n", e);
-            print_usage(&program, opts);
-            process::exit(1);
-        }
+            print_usage(&program, &opts);
+            process::exit(1)
+        },
     };
+
     if matches.opt_present("h") {
-        print_usage(&program, opts);
-        process::exit(1);
+        print_usage(&program, &opts);
+        process::exit(1)
     }
 
     if matches.opt_present("V") {
         print_version();
-        process::exit(1);
+        process::exit(1)
     }
 
     let code_box = match matches.opt_str("c") {
@@ -74,15 +75,15 @@ fn main() {
             let input = if !matches.free.is_empty() {
                 matches.free[0].clone()
             } else {
-                print_usage(&program, opts);
-                process::exit(1);
+                print_usage(&program, &opts);
+                process::exit(1)
             };
 
             match fish::CodeBox::load_from_file(&input) {
                 Ok(cb) => cb,
                 Err(e) => {
                     println!("Error: {}", e);
-                    process::exit(2);
+                    process::exit(2)
                 }
             }
         }
@@ -102,7 +103,7 @@ fn main() {
             Ok(v) => v,
             Err(e) => {
                 println!("Error: {}", e);
-                process::exit(2);
+                process::exit(2)
             }
         };
         fish.push_i64(n);
