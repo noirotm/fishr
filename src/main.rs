@@ -1,82 +1,69 @@
-use std::env;
-use std::process;
-
-extern crate getopts;
-use getopts::Options;
-
+extern crate clap;
 extern crate fish;
+
+use std::process;
+use clap::{Arg, App};
 
 const NAME: &'static str = env!("CARGO_PKG_NAME");
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-fn print_usage(program: &str, opts: &Options) {
-    let brief = format!("Usage: {} [options] FILE", program);
-    print!("{}", opts.usage(&brief));
-}
-
-fn print_version() {
-    println!("{} version {}\nCopyright © 2017 - Marc Noirot",
-             NAME,
-             VERSION);
-}
-
 fn main() {
-    let args: Vec<_> = env::args().collect();
-    let program = args[0].clone();
+    let matches = App::new(NAME)
+        .version(VERSION)
+        .author("Marc Noirot <marc.noirot@gmail.com>")
+        .about("Fish language interpreter")
+        .arg(Arg::with_name("INPUT")
+            .help("set the input file to use")
+            .required_unless("code")
+            .value_name("FILE")
+            .index(1))
+        .arg(Arg::with_name("code")
+            .short("c")
+            .long("code")
+            .help("string of instructions to execute instead of FILE")
+            .takes_value(true)
+            .value_name("CODE"))
+        .arg(Arg::with_name("string")
+            .short("s")
+            .long("string")
+            .help("push strings onto the stack before execution starts")
+            .takes_value(true)
+            .value_name("STRING")
+            .multiple(true)
+            .number_of_values(1))
+        .arg(Arg::with_name("value")
+            .short("v")
+            .long("value")
+            .help("push numbers onto the stack before execution starts")
+            .takes_value(true)
+            .value_name("NUMBER")
+            .multiple(true)
+            .number_of_values(1))
+        .arg(Arg::with_name("tick")
+            .short("t")
+            .long("tick")
+            .help("define a delay between the execution of each instruction")
+            .takes_value(true)
+            .value_name("DELAY"))
+        .arg(Arg::with_name("always_tick")
+            .short("a")
+            .long("always-tick")
+            .help("make every instruction cause a tick, even whitespace and skipped instructions"))
+        .arg(Arg::with_name("debug")
+            .short("d")
+            .long("debug")
+            .help("dump interpreter state before executing an instruction"))
+        .get_matches();
 
-    let mut opts = Options::new();
-    opts.optopt("c",
-                "code",
-                "string of instructions to execute instead of FILE",
-                "CODE");
-    opts.optmulti("s",
-                  "string",
-                  "push strings onto the stack before execution starts",
-                  "STRING");
-    opts.optmulti("v",
-                  "value",
-                  "push numbers onto the stack before execution starts",
-                  "NUMBER");
-    opts.optopt("t",
-                "tick",
-                "define a delay between the execution of each instruction",
-                "DELAY");
-    opts.optflag("a",
-                 "always-tick",
-                 "make every instruction cause a tick, even whitespace and skipped instructions");
-    opts.optflag("d",
-                 "debug",
-                 "dump interpreter state before executing an instruction");
-    opts.optflag("h", "help", "print this help menu");
-    opts.optflag("V", "version", "print the program version and exit");
-
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => m,
-        Err(e) => {
-            println!("Error: {}\n", e);
-            print_usage(&program, &opts);
-            process::exit(1)
-        },
-    };
-
-    if matches.opt_present("h") {
-        print_usage(&program, &opts);
-        process::exit(1)
-    }
-
-    if matches.opt_present("V") {
-        print_version();
-        process::exit(1)
-    }
-
-    let code_box = match matches.opt_str("c") {
+    let code_box = match matches.value_of("code") {
         Some(c) => fish::CodeBox::load_from_string(&c),
-        _ => {
-            let input = if !matches.free.is_empty() {
-                matches.free[0].clone()
-            } else {
-                print_usage(&program, &opts);
-                process::exit(1)
+        None => {
+            let input = match matches.value_of("INPUT") {
+                Some(v) => v,
+                None => {
+                    println!("{}", matches.usage());
+                    process::exit(1)
+                },
             };
 
             match fish::CodeBox::load_from_file(&input) {
@@ -94,22 +81,26 @@ fn main() {
 
     let mut fish = fish::Interpreter::new(input, output);
 
-    for c in &matches.opt_strs("s") {
-        fish.push_str(c);
+    if let Some(strings) = matches.values_of("string") {
+        for c in strings {
+            fish.push_str(c);
+        }
     }
 
-    for c in &matches.opt_strs("v") {
-        let n = match c.parse::<i64>() {
-            Ok(v) => v,
-            Err(e) => {
-                println!("Error: {}", e);
-                process::exit(2)
-            }
-        };
-        fish.push_i64(n);
+    if let Some(numbers) = matches.values_of("value") {
+        for c in numbers {
+            let n = match c.parse::<i64>() {
+                Ok(v) => v,
+                Err(e) => {
+                    println!("Error: {}", e);
+                    process::exit(2)
+                }
+            };
+            fish.push_i64(n);
+        }
     }
 
-    if matches.opt_present("d") {
+    if matches.is_present("debug") {
         fish.trace = true;
     }
 
