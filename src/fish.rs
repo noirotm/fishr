@@ -553,7 +553,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() == x.to_i64();
-                self.stack.top().push(Val::Byte(if res { 1 } else { 0 }));
+                self.stack.top().push(Val::Byte(res as u8));
                 Ok(())
             }
 
@@ -565,7 +565,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() > x.to_i64();
-                self.stack.top().push(Val::Byte(if res { 1 } else { 0 }));
+                self.stack.top().push(Val::Byte(res as u8));
                 Ok(())
             }
 
@@ -577,7 +577,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         match (self.stack.top().pop(), self.stack.top().pop()) {
             (Some(x), Some(y)) => {
                 let res = y.to_i64() < x.to_i64();
-                self.stack.top().push(Val::Byte(if res { 1 } else { 0 }));
+                self.stack.top().push(Val::Byte(res as u8));
                 Ok(())
             }
 
