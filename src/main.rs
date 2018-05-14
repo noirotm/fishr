@@ -14,7 +14,7 @@ fn main() {
         .about("Fish language interpreter")
         .arg(Arg::with_name("INPUT")
             .help("set the input file to use")
-            .required_unless("code")
+            .conflicts_with("code")
             .value_name("FILE")
             .index(1))
         .arg(Arg::with_name("code")
