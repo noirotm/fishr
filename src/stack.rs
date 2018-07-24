@@ -46,13 +46,8 @@ impl<T> Stack<T>
 
     pub fn switch_register(&mut self) -> Result<(), Error> {
         match self.register.take() {
-            None => {
-                match self.pop() {
-                    Some(val) => self.register = Some(val),
-                    None => return Err(Error::StackUnderflow),
-                }
-            }
             Some(val) => self.push(val),
+            None => self.register = Some(self.pop().ok_or(Error::StackUnderflow)?),
         }
 
         Ok(())

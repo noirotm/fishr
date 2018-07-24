@@ -33,8 +33,7 @@ impl CodeBox {
             height: 0,
         };
         for line in BufReader::new(r).lines() {
-            let line = line?;
-            code_box.push(line.as_bytes().to_vec());
+            code_box.push(line?.as_bytes().to_vec());
         }
         Ok(code_box)
     }
@@ -64,14 +63,12 @@ impl CodeBox {
     }
 
     fn get(&self, x: usize, y: usize) -> Option<u8> {
-        if x >= self.width || y >= self.height {
-            return None;
+        if x < self.width && y < self.height {
+            let line = self.data.get(y).expect("line should not be None");
+            Some(line.get(x).map_or(b' ', |c| *c))
+        } else {
+            None
         }
-        let line = self.data.get(y).expect("line should not be None");
-        Some(match line.get(x) {
-            Some(c) => *c,
-            None => b' ',
-        })
     }
 }
 
@@ -139,7 +136,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             memory: HashMap::new(),
             trace: false,
             input: input.bytes(),
-            output: output,
+            output,
             rng: thread_rng(),
             state: ParserState::Normal,
             memory_is_dirty: false,
@@ -239,6 +236,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                    code: &CodeBox)
                    -> Result<RuntimeStatus, RuntimeError> {
         match self.state {
+            ParserState::Normal => return self.execute_instruction(instruction, code),
             ParserState::SingleQuoted => {
                 match instruction as char {
                     // Exit quote mode
@@ -253,7 +251,6 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                     _ => self.stack.top().push(Val::Byte(instruction)),
                 }
             }
-            ParserState::Normal => return self.execute_instruction(instruction, code),
         }
         Ok(RuntimeStatus::Continue)
     }
