@@ -1,3 +1,8 @@
+extern crate serde;
+#[macro_use]
+extern crate serde_json;
+extern crate rand;
+
 use std::cmp;
 use std::collections::HashMap;
 use std::error::Error;
@@ -5,14 +10,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{BufReader, Bytes, Cursor, stderr};
 use std::path::Path;
-
-extern crate serde;
-
-#[macro_use]
-extern crate serde_json;
 use serde_json::{Value, to_value};
-
-extern crate rand;
 use rand::{Rng, ThreadRng, thread_rng};
 
 mod val;
