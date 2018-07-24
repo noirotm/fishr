@@ -179,7 +179,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             }.unwrap_or(Value::Null)),
         });
 
-        writeln!(&mut stderr(), "{}", state.to_string()).unwrap();
+        writeln!(&mut stderr(), "{}", state.to_string()).expect("writeln! failed");
     }
 
     pub fn push_str(&mut self, s: &str) {
