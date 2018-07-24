@@ -220,7 +220,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     }
 
     pub fn fetch(&self, code: &CodeBox) -> Option<u8> {
-        // don't fetch from map is memory is pristine
+        // don't fetch from map if memory is pristine
         if !self.memory_is_dirty {
             return code.get(self.ip.chr, self.ip.line);
         }
