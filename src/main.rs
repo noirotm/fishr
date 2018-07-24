@@ -4,8 +4,8 @@ extern crate fish;
 use std::process;
 use clap::{Arg, App};
 
-const NAME: &'static str = env!("CARGO_PKG_NAME");
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const NAME: &str = env!("CARGO_PKG_NAME");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let matches = App::new(NAME)
