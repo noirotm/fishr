@@ -126,7 +126,8 @@ impl<T> Stack<T>
 pub struct StackOfStacks<T>
     where T: Copy
 {
-    pub stacks: Vec<Stack<T>>,
+    pub initial_stack: Stack<T>,
+    pub additional_stacks: Vec<Stack<T>>,
 }
 
 impl<T> Default for StackOfStacks<T>
@@ -141,19 +142,20 @@ impl<T> StackOfStacks<T>
     where T: Copy
 {
     pub fn new() -> Self {
-        StackOfStacks { stacks: vec![Stack::<T>::new()] /* there is always at least one stack */ }
+        StackOfStacks {
+            initial_stack: Stack::<T>::new(),
+            additional_stacks: vec![],
+        }
     }
 
     pub fn push_stack(&mut self, moved_items: usize) -> Result<(), Error> {
-        let vals: Vec<_> = {
+        let vals = {
             let stack = self.top();
-            match stack.len().checked_sub(moved_items) {
-                Some(v) => stack.values.split_off(v),
-                None => return Err(Error::StackUnderflow),
-            }
+            let n = stack.len().checked_sub(moved_items).ok_or(Error::StackUnderflow)?;
+            stack.values.split_off(n)
         };
 
-        self.stacks.push(Stack::<T> {
+        self.additional_stacks.push(Stack::<T> {
             values: vals,
             register: None,
         });
@@ -162,19 +164,16 @@ impl<T> StackOfStacks<T>
     }
 
     pub fn pop_stack(&mut self) {
-        if self.stacks.len() > 1 {
-            let v = self.stacks.pop().unwrap().values;
-            self.top().values.extend(v);
+        if let Some(stack) = self.additional_stacks.pop() {
+            self.top().values.extend(stack.values);
         } else {
-            let s = self.top();
-            s.values.clear();
-            s.register = None;
+            self.initial_stack.values.clear();
+            self.initial_stack.register = None;
         }
     }
 
     pub fn top(&mut self) -> &mut Stack<T> {
-        debug_assert!(!self.stacks.is_empty());
-        self.stacks.last_mut().unwrap()
+        self.additional_stacks.last_mut().unwrap_or(&mut self.initial_stack)
     }
 }
 
@@ -397,9 +396,9 @@ mod tests {
         fn new_works() {
             let s = StackOfStacks::<isize>::new();
 
-            assert_eq!(s.stacks.len(), 1);
-            assert_eq!(s.stacks[0].len(), 0);
-            assert_eq!(s.stacks[0].register, None);
+            assert_eq!(s.additional_stacks.len(), 0);
+            assert_eq!(s.initial_stack.len(), 0);
+            assert_eq!(s.initial_stack.register, None);
         }
 
         #[test]
@@ -413,10 +412,10 @@ mod tests {
 
             assert!(res.is_ok());
 
-            assert_eq!(s.stacks.len(), 2);
-            assert_eq!(s.stacks[0].values, vec![5]);
-            assert_eq!(s.stacks[1].values, vec![42, 58]);
-            assert_eq!(s.stacks[1].register, None);
+            assert_eq!(s.additional_stacks.len(), 1);
+            assert_eq!(s.initial_stack.values, vec![5]);
+            assert_eq!(s.additional_stacks[0].values, vec![42, 58]);
+            assert_eq!(s.additional_stacks[0].register, None);
         }
 
         #[test]
@@ -430,10 +429,10 @@ mod tests {
 
             assert!(res.is_ok());
 
-            assert_eq!(s.stacks.len(), 2);
-            assert_eq!(s.stacks[0].values, vec![0; 0]);
-            assert_eq!(s.stacks[1].values, vec![5, 42, 58]);
-            assert_eq!(s.stacks[1].register, None);
+            assert_eq!(s.additional_stacks.len(), 1);
+            assert_eq!(s.initial_stack.values, vec![0; 0]);
+            assert_eq!(s.additional_stacks[0].values, vec![5, 42, 58]);
+            assert_eq!(s.additional_stacks[0].register, None);
         }
 
         #[test]
@@ -447,10 +446,10 @@ mod tests {
 
             assert!(res.is_ok());
 
-            assert_eq!(s.stacks.len(), 2);
-            assert_eq!(s.stacks[0].values, vec![5, 42, 58]);
-            assert_eq!(s.stacks[1].values, vec![0; 0]);
-            assert_eq!(s.stacks[1].register, None);
+            assert_eq!(s.additional_stacks.len(), 1);
+            assert_eq!(s.initial_stack.values, vec![5, 42, 58]);
+            assert_eq!(s.additional_stacks[0].values, vec![0; 0]);
+            assert_eq!(s.additional_stacks[0].register, None);
         }
 
         #[test]
@@ -477,9 +476,9 @@ mod tests {
 
             s.pop_stack();
 
-            assert_eq!(s.stacks.len(), 1);
-            assert_eq!(s.stacks[0].values, vec![5, 42, 58]);
-            assert_eq!(s.stacks[0].register, None);
+            assert_eq!(s.additional_stacks.len(), 0);
+            assert_eq!(s.initial_stack.values, vec![5, 42, 58]);
+            assert_eq!(s.initial_stack.register, None);
         }
 
         #[test]
@@ -494,9 +493,9 @@ mod tests {
 
             s.pop_stack();
 
-            assert_eq!(s.stacks.len(), 1);
-            assert_eq!(s.stacks[0].values, vec![5, 42]);
-            assert_eq!(s.stacks[0].register, Some(58));
+            assert_eq!(s.additional_stacks.len(), 0);
+            assert_eq!(s.initial_stack.values, vec![5, 42]);
+            assert_eq!(s.initial_stack.register, Some(58));
         }
 
         #[test]
@@ -511,13 +510,13 @@ mod tests {
 
             s.pop_stack();
 
-            assert_eq!(s.stacks.len(), 1);
-            assert_eq!(s.stacks[0].values, vec![5, 42]);
-            assert_eq!(s.stacks[0].register, None);
+            assert_eq!(s.additional_stacks.len(), 0);
+            assert_eq!(s.initial_stack.values, vec![5, 42]);
+            assert_eq!(s.initial_stack.register, None);
         }
 
         #[test]
-        fn pop_last_stack_makes_it_empty() {
+        fn pop_initial_stack_makes_it_empty() {
             let mut s = StackOfStacks::new();
             s.top().push(5);
             s.top().push(42);
@@ -527,9 +526,9 @@ mod tests {
 
             s.pop_stack();
 
-            assert_eq!(s.stacks.len(), 1);
-            assert_eq!(s.stacks[0].values, vec![0; 0]);
-            assert_eq!(s.stacks[0].register, None);
+            assert_eq!(s.additional_stacks.len(), 0);
+            assert_eq!(s.initial_stack.values, vec![0; 0]);
+            assert_eq!(s.initial_stack.register, None);
         }
     }
 }
