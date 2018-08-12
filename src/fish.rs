@@ -570,57 +570,44 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn read_memory(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(y), Some(x)) => {
-                let pos = MemPos {
-                    x: x.to_i64(),
-                    y: y.to_i64(),
-                };
-                let val = match self.memory.get(&pos) {
-                    Some(&v) => v,
-                    None => {
-                        Val::Byte(match code.get(pos.x as usize, pos.y as usize) {
-                            Some(b' ') | None => 0,
-                            Some(b) => b,
-                        })
-                    }
-                };
-                self.stack.top().push(val);
-                Ok(())
+    fn get_memory(&self, code: &CodeBox, x: i64, y: i64) -> Val {
+        // fetch from map only if memory is dirty
+        if self.memory_is_dirty {
+            if let Some(v) = self.memory.get(&MemPos {x, y}) {
+                return *v
             }
-            _ => Err(RuntimeError::StackUnderflow),
         }
+
+        let b = code.get(x as usize, y as usize);
+        Val::Byte(match b {
+            Some(b' ') | None => 0,
+            Some(b) => b,
+        })
+    }
+
+    fn read_memory(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
+        let y = self.pop()?.to_i64();
+        let x = self.pop()?.to_i64();
+
+        let val = self.get_memory(code, x, y);
+        self.stack.top().push(val);
+        Ok(())
     }
 
     fn write_memory(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(y), Some(x), Some(v)) => {
-                let pos = MemPos {
-                    x: x.to_i64(),
-                    y: y.to_i64(),
-                };
+        let y = self.pop()?.to_i64();
+        let x = self.pop()?.to_i64();
+        let v = self.pop()?;
 
-                // abort if we don't actually change memory
-                let val = match self.memory.get(&pos) {
-                    Some(&v) => v,
-                    None => {
-                        Val::Byte(match code.get(pos.x as usize, pos.y as usize) {
-                            Some(b' ') | None => 0,
-                            Some(b) => b,
-                        })
-                    }
-                };
+        let val = self.get_memory(code, x, y);
 
-                if v != val {
-                    self.memory.insert(pos, v);
-                    self.memory_is_dirty = true;
-                }
-
-                Ok(())
-            }
-            _ => Err(RuntimeError::StackUnderflow),
+        // abort if we don't actually change memory
+        if v != val {
+            self.memory.insert(MemPos {x, y}, v);
+            self.memory_is_dirty = true;
         }
+
+        Ok(())
     }
 }
 
