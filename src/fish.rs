@@ -151,7 +151,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
     pub fn dump_state(&mut self, instruction: u8) {
         if instruction == b' ' {
-            return;
+            return
         }
 
         let state = json!({
@@ -215,20 +215,19 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     }
 
     pub fn fetch(&self, code: &CodeBox) -> Option<u8> {
-        // don't fetch from map if memory is pristine
-        if !self.memory_is_dirty {
-            return code.get(self.ip.chr, self.ip.line);
+        // fetch from map only if memory is dirty
+        if self.memory_is_dirty {
+            // R/W codebox override (backed by a map)
+            let pos = MemPos {
+                x: self.ip.chr as i64,
+                y: self.ip.line as i64,
+            };
+            if let Some(v) = self.memory.get(&pos) {
+                return Some(v.to_u8())
+            }
         }
 
-        // R/W codebox override (backed by a map)
-        let pos = MemPos {
-            x: self.ip.chr as i64,
-            y: self.ip.line as i64,
-        };
-        match self.memory.get(&pos) {
-            Some(v) => Some(v.to_u8()),
-            None => code.get(self.ip.chr, self.ip.line),
-        }
+        code.get(self.ip.chr, self.ip.line)
     }
 
     pub fn execute(&mut self,
@@ -253,6 +252,11 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             }
         }
         Ok(RuntimeStatus::Continue)
+    }
+
+    #[inline]
+    fn pop(&mut self) -> Result<Val, RuntimeError> {
+        self.stack.top().pop().ok_or(RuntimeError::StackUnderflow)
     }
 
     fn execute_instruction(&mut self,
@@ -347,10 +351,8 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // # Stack of stacks
             // Pop x off the stack and create a new stack, moving x values.
             '[' => {
-                match self.stack.top().pop() {
-                    Some(v) => self.stack.push_stack(v.to_i64() as usize).or(Err(RuntimeError::StackUnderflow))?,
-                    None => return Err(RuntimeError::StackUnderflow),
-                }
+                let v = self.pop()?;
+                self.stack.push_stack(v.to_i64() as usize).or(Err(RuntimeError::StackUnderflow))?;
             }
             // Remove the current stack, moving its values to the top of the underlying stack
             ']' => self.stack.pop_stack(),
@@ -445,156 +447,117 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     }
 
     fn jump(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(y_val), Some(x_val)) => {
-                let y = y_val.to_i64();
-                let x = x_val.to_i64();
+        let y = self.pop()?.to_i64();
+        let x = self.pop()?.to_i64();
 
-                if x < 0 || y < 0 {
-                    return Err(RuntimeError::InvalidIpPosition);
-                }
-
-                self.ip.chr = x as usize;
-                self.ip.line = y as usize;
-
-                if self.ip.chr >= code.width {
-                    self.ip.chr = 0;
-                }
-                if self.ip.line >= code.height {
-                    self.ip.line = 0;
-                }
-
-                Ok(())
-            }
-            _ => Err(RuntimeError::StackUnderflow),
+        if x < 0 || y < 0 {
+            return Err(RuntimeError::InvalidIpPosition)
         }
+
+        self.ip.chr = x as usize;
+        self.ip.line = y as usize;
+
+        if self.ip.chr >= code.width {
+            self.ip.chr = 0;
+        }
+        if self.ip.line >= code.height {
+            self.ip.line = 0;
+        }
+
+        Ok(())
     }
 
     fn add(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(x), Some(y)) => {
-                let res = match y.checked_add(x) {
-                    Some(v) => v,
-                    None => return Err(RuntimeError::IntegerOverflow),
-                };
-                self.stack.top().push(res);
-                Ok(())
-            }
-            _ => Err(RuntimeError::StackUnderflow),
-        }
+        let x = self.pop()?;
+        let y = self.pop()?;
+
+        let res = y.checked_add(x).ok_or(RuntimeError::IntegerOverflow)?;
+        self.stack.top().push(res);
+        Ok(())
     }
 
     fn sub(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(x), Some(y)) => {
-                let res = match y.checked_sub(x) {
-                    Some(v) => v,
-                    None => return Err(RuntimeError::IntegerOverflow),
-                };
-                self.stack.top().push(res);
-                Ok(())
-            }
-            _ => Err(RuntimeError::StackUnderflow),
-        }
+        let x = self.pop()?;
+        let y = self.pop()?;
+
+        let res = y.checked_sub(x).ok_or(RuntimeError::IntegerOverflow)?;
+        self.stack.top().push(res);
+        Ok(())
     }
 
     fn mul(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(x), Some(y)) => {
-                let res = match y.checked_mul(x) {
-                    Some(v) => v,
-                    None => return Err(RuntimeError::IntegerOverflow),
-                };
-                self.stack.top().push(res);
-                Ok(())
-            }
-            _ => Err(RuntimeError::StackUnderflow),
-        }
+        let x = self.pop()?;
+        let y = self.pop()?;
+
+        let res = y.checked_mul(x).ok_or(RuntimeError::IntegerOverflow)?;
+        self.stack.top().push(res);
+        Ok(())
     }
 
     fn div(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(ref x), _) if x.to_i64() == 0 => Err(RuntimeError::DivideByZero),
+        let x = self.pop()?;
+        let y = self.pop()?;
 
-            (Some(x), Some(y)) => {
-                let res = y.to_f64() / x.to_f64();
-                self.stack.top().push(Val::Float(res));
-                Ok(())
-            }
-
-            _ => Err(RuntimeError::StackUnderflow),
+        let res = y.to_f64() / x.to_f64();
+        if res.is_infinite() {
+            return Err(RuntimeError::DivideByZero)
         }
+
+        self.stack.top().push(Val::Float(res));
+        Ok(())
     }
 
     fn rem(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(ref x), _) if x.to_i64() == 0 => Err(RuntimeError::DivideByZero),
+        let x = self.pop()?.to_i64();
+        let y = self.pop()?.to_i64();
 
-            (Some(x), Some(y)) => {
-                let rem = y.to_i64() % x.to_i64();
-                let modulo = match rem.checked_add(x.to_i64()) {
-                    Some(s) => s % x.to_i64(),
-                    _ => return Err(RuntimeError::IntegerOverflow),
-                };
-                self.stack.top().push(Val::Int(modulo));
-                Ok(())
-            }
-
-            _ => Err(RuntimeError::StackUnderflow),
+        if x == 0 {
+            return Err(RuntimeError::DivideByZero)
         }
+
+        let rem = y % x;
+        let modulo = rem.checked_add(x).ok_or(RuntimeError::IntegerOverflow)? % x;
+
+        self.stack.top().push(Val::Int(modulo));
+        Ok(())
     }
 
     fn equals(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(x), Some(y)) => {
-                let res = y.to_i64() == x.to_i64();
-                self.stack.top().push(Val::Byte(res as u8));
-                Ok(())
-            }
+        let x = self.pop()?.to_i64();
+        let y = self.pop()?.to_i64();
 
-            _ => Err(RuntimeError::StackUnderflow),
-        }
+        let res = y == x;
+        self.stack.top().push(Val::Byte(res as u8));
+        Ok(())
     }
 
     fn gt(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(x), Some(y)) => {
-                let res = y.to_i64() > x.to_i64();
-                self.stack.top().push(Val::Byte(res as u8));
-                Ok(())
-            }
+        let x = self.pop()?.to_i64();
+        let y = self.pop()?.to_i64();
 
-            _ => Err(RuntimeError::StackUnderflow),
-        }
+        let res = y > x;
+        self.stack.top().push(Val::Byte(res as u8));
+        Ok(())
     }
 
     fn lt(&mut self) -> Result<(), RuntimeError> {
-        match (self.stack.top().pop(), self.stack.top().pop()) {
-            (Some(x), Some(y)) => {
-                let res = y.to_i64() < x.to_i64();
-                self.stack.top().push(Val::Byte(res as u8));
-                Ok(())
-            }
+        let x = self.pop()?.to_i64();
+        let y = self.pop()?.to_i64();
 
-            _ => Err(RuntimeError::StackUnderflow),
-        }
+        let res = y < x;
+        self.stack.top().push(Val::Byte(res as u8));
+        Ok(())
     }
 
     fn char_output(&mut self) -> Result<(), RuntimeError> {
-        match self.stack.top().pop() {
-            Some(v) => {
-                let c = v.to_u8() as char;
-                write!(&mut self.output, "{}", c).or(Err(RuntimeError::IOError))
-            }
-            None => Err(RuntimeError::StackUnderflow),
-        }
+        let c = self.pop()?.to_u8() as char;
+        write!(&mut self.output, "{}", c).or(Err(RuntimeError::IOError))
     }
 
     fn num_output(&mut self) -> Result<(), RuntimeError> {
-        match self.stack.top().pop() {
-            Some(Val::Float(f)) => write!(&mut self.output, "{}", f).or(Err(RuntimeError::IOError)),
-            Some(v) => write!(&mut self.output, "{}", v.to_i64()).or(Err(RuntimeError::IOError)),
-            None => Err(RuntimeError::StackUnderflow),
+        match self.pop()? {
+            Val::Float(f) => write!(&mut self.output, "{}", f).or(Err(RuntimeError::IOError)),
+            v => write!(&mut self.output, "{}", v.to_i64()).or(Err(RuntimeError::IOError)),
         }
     }
 
