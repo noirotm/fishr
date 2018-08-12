@@ -1,8 +1,8 @@
 extern crate clap;
 extern crate fish;
 
+use clap::{App, Arg};
 use std::process;
-use clap::{Arg, App};
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -12,47 +12,63 @@ fn main() {
         .version(VERSION)
         .author("Marc Noirot <marc.noirot@gmail.com>")
         .about("Fish language interpreter")
-        .arg(Arg::with_name("INPUT")
-            .help("set the input file to use")
-            .conflicts_with("code")
-            .value_name("FILE")
-            .index(1))
-        .arg(Arg::with_name("code")
-            .short("c")
-            .long("code")
-            .help("string of instructions to execute instead of FILE")
-            .takes_value(true)
-            .value_name("CODE"))
-        .arg(Arg::with_name("string")
-            .short("s")
-            .long("string")
-            .help("push strings onto the stack before execution starts")
-            .takes_value(true)
-            .value_name("STRING")
-            .multiple(true)
-            .number_of_values(1))
-        .arg(Arg::with_name("value")
-            .short("v")
-            .long("value")
-            .help("push numbers onto the stack before execution starts")
-            .takes_value(true)
-            .value_name("NUMBER")
-            .multiple(true)
-            .number_of_values(1))
-        .arg(Arg::with_name("tick")
-            .short("t")
-            .long("tick")
-            .help("define a delay between the execution of each instruction")
-            .takes_value(true)
-            .value_name("DELAY"))
-        .arg(Arg::with_name("always_tick")
-            .short("a")
-            .long("always-tick")
-            .help("make every instruction cause a tick, even whitespace and skipped instructions"))
-        .arg(Arg::with_name("debug")
-            .short("d")
-            .long("debug")
-            .help("dump interpreter state before executing an instruction"))
+        .arg(
+            Arg::with_name("INPUT")
+                .help("set the input file to use")
+                .conflicts_with("code")
+                .value_name("FILE")
+                .index(1),
+        )
+        .arg(
+            Arg::with_name("code")
+                .short("c")
+                .long("code")
+                .help("string of instructions to execute instead of FILE")
+                .takes_value(true)
+                .value_name("CODE"),
+        )
+        .arg(
+            Arg::with_name("string")
+                .short("s")
+                .long("string")
+                .help("push strings onto the stack before execution starts")
+                .takes_value(true)
+                .value_name("STRING")
+                .multiple(true)
+                .number_of_values(1),
+        )
+        .arg(
+            Arg::with_name("value")
+                .short("v")
+                .long("value")
+                .help("push numbers onto the stack before execution starts")
+                .takes_value(true)
+                .value_name("NUMBER")
+                .multiple(true)
+                .number_of_values(1),
+        )
+        .arg(
+            Arg::with_name("tick")
+                .short("t")
+                .long("tick")
+                .help("define a delay between the execution of each instruction")
+                .takes_value(true)
+                .value_name("DELAY"),
+        )
+        .arg(
+            Arg::with_name("always_tick")
+                .short("a")
+                .long("always-tick")
+                .help(
+                    "make every instruction cause a tick, even whitespace and skipped instructions",
+                ),
+        )
+        .arg(
+            Arg::with_name("debug")
+                .short("d")
+                .long("debug")
+                .help("dump interpreter state before executing an instruction"),
+        )
         .get_matches();
 
     let code_box = match matches.value_of("code") {
@@ -63,7 +79,7 @@ fn main() {
                 None => {
                     println!("{}", matches.usage());
                     process::exit(1)
-                },
+                }
             };
 
             match fish::CodeBox::load_from_file(&input) {

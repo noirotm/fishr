@@ -3,21 +3,21 @@ extern crate serde;
 extern crate serde_json;
 extern crate rand;
 
+use rand::{thread_rng, Rng, ThreadRng};
+use serde_json::{to_value, Value};
 use std::cmp;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{BufReader, Bytes, Cursor, stderr};
+use std::io::{stderr, BufReader, Bytes, Cursor};
 use std::path::Path;
-use serde_json::{Value, to_value};
-use rand::{Rng, ThreadRng, thread_rng};
 
 mod val;
 pub use val::Val;
 
 mod stack;
-pub use stack::{StackOfStacks, Stack};
+pub use stack::{Stack, StackOfStacks};
 
 pub struct CodeBox {
     data: Vec<Vec<u8>>,
@@ -151,7 +151,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
     pub fn dump_state(&mut self, instruction: u8) {
         if instruction == b' ' {
-            return
+            return;
         }
 
         let state = json!({
@@ -223,17 +223,18 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                 y: self.ip.line as i64,
             };
             if let Some(v) = self.memory.get(&pos) {
-                return Some(v.to_u8())
+                return Some(v.to_u8());
             }
         }
 
         code.get(self.ip.chr, self.ip.line)
     }
 
-    pub fn execute(&mut self,
-                   instruction: u8,
-                   code: &CodeBox)
-                   -> Result<RuntimeStatus, RuntimeError> {
+    pub fn execute(
+        &mut self,
+        instruction: u8,
+        code: &CodeBox,
+    ) -> Result<RuntimeStatus, RuntimeError> {
         match self.state {
             ParserState::Normal => return self.execute_instruction(instruction, code),
             ParserState::SingleQuoted => {
@@ -259,10 +260,11 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         self.stack.top().pop().ok_or(RuntimeError::StackUnderflow)
     }
 
-    fn execute_instruction(&mut self,
-                           instruction: u8,
-                           code: &CodeBox)
-                           -> Result<RuntimeStatus, RuntimeError> {
+    fn execute_instruction(
+        &mut self,
+        instruction: u8,
+        code: &CodeBox,
+    ) -> Result<RuntimeStatus, RuntimeError> {
         match instruction as char {
             // Enter quote mode
             '\'' => self.state = ParserState::SingleQuoted,
@@ -280,8 +282,12 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             // random direction
             'x' => {
-                static DIRECTIONS: [Direction; 4] =
-                    [Direction::Left, Direction::Right, Direction::Up, Direction::Down];
+                static DIRECTIONS: [Direction; 4] = [
+                    Direction::Left,
+                    Direction::Right,
+                    Direction::Up,
+                    Direction::Down,
+                ];
 
                 if let Some(dir) = self.rng.choose(&DIRECTIONS) {
                     self.dir = dir.clone();
@@ -329,13 +335,29 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             // # Stack manipulation
             // Duplicate the top value on the stack
-            ':' => self.stack.top().dup().or(Err(RuntimeError::StackUnderflow))?,
+            ':' => self
+                .stack
+                .top()
+                .dup()
+                .or(Err(RuntimeError::StackUnderflow))?,
             // Remove the top value from the stack
-            '~' => self.stack.top().drop().or(Err(RuntimeError::StackUnderflow))?,
+            '~' => self
+                .stack
+                .top()
+                .drop()
+                .or(Err(RuntimeError::StackUnderflow))?,
             // Swap the top two values on the stack
-            '$' => self.stack.top().swap().or(Err(RuntimeError::StackUnderflow))?,
+            '$' => self
+                .stack
+                .top()
+                .swap()
+                .or(Err(RuntimeError::StackUnderflow))?,
             // Swap the top three values on the stack
-            '@' => self.stack.top().swap2().or(Err(RuntimeError::StackUnderflow))?,
+            '@' => self
+                .stack
+                .top()
+                .swap2()
+                .or(Err(RuntimeError::StackUnderflow))?,
             // Shift the entire stack to the right
             '}' => self.stack.top().rshift(),
             // Shift the entire stack to the left
@@ -352,7 +374,9 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // Pop x off the stack and create a new stack, moving x values.
             '[' => {
                 let v = self.pop()?;
-                self.stack.push_stack(v.to_i64() as usize).or(Err(RuntimeError::StackUnderflow))?;
+                self.stack
+                    .push_stack(v.to_i64() as usize)
+                    .or(Err(RuntimeError::StackUnderflow))?;
             }
             // Remove the current stack, moving its values to the top of the underlying stack
             ']' => self.stack.pop_stack(),
@@ -366,7 +390,11 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             'i' => self.input()?,
 
             // register operation
-            '&' => self.stack.top().switch_register().or(Err(RuntimeError::StackUnderflow))?,
+            '&' => self
+                .stack
+                .top()
+                .switch_register()
+                .or(Err(RuntimeError::StackUnderflow))?,
 
             // # Memory operations
             // Push from memory
@@ -451,7 +479,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let x = self.pop()?.to_i64();
 
         if x < 0 || y < 0 {
-            return Err(RuntimeError::InvalidIpPosition)
+            return Err(RuntimeError::InvalidIpPosition);
         }
 
         self.ip.chr = x as usize;
@@ -500,7 +528,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
         let res = y.to_f64() / x.to_f64();
         if res.is_infinite() {
-            return Err(RuntimeError::DivideByZero)
+            return Err(RuntimeError::DivideByZero);
         }
 
         self.stack.top().push(Val::Float(res));
@@ -512,7 +540,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let y = self.pop()?.to_i64();
 
         if x == 0 {
-            return Err(RuntimeError::DivideByZero)
+            return Err(RuntimeError::DivideByZero);
         }
 
         let rem = y % x;
@@ -573,8 +601,8 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     fn get_memory(&self, code: &CodeBox, x: i64, y: i64) -> Val {
         // fetch from map only if memory is dirty
         if self.memory_is_dirty {
-            if let Some(v) = self.memory.get(&MemPos {x, y}) {
-                return *v
+            if let Some(v) = self.memory.get(&MemPos { x, y }) {
+                return *v;
             }
         }
 
@@ -603,7 +631,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
         // abort if we don't actually change memory
         if v != val {
-            self.memory.insert(MemPos {x, y}, v);
+            self.memory.insert(MemPos { x, y }, v);
             self.memory_is_dirty = true;
         }
 
@@ -613,8 +641,8 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{empty, sink};
     use super::*;
+    use std::io::{empty, sink};
 
     #[test]
     fn codebox_with_one_line() {
@@ -660,10 +688,18 @@ mod tests {
         interpreter.push_str(" ");
         interpreter.push_str("bar");
 
-        assert_eq!(interpreter.stack.top().values,
-            vec![Val::Byte(b'f'), Val::Byte(b'o'), Val::Byte(b'o'),
-                 Val::Byte(b' '),
-                 Val::Byte(b'b'), Val::Byte(b'a'), Val::Byte(b'r')]);
+        assert_eq!(
+            interpreter.stack.top().values,
+            vec![
+                Val::Byte(b'f'),
+                Val::Byte(b'o'),
+                Val::Byte(b'o'),
+                Val::Byte(b' '),
+                Val::Byte(b'b'),
+                Val::Byte(b'a'),
+                Val::Byte(b'r'),
+            ]
+        );
     }
 
     #[test]
@@ -673,7 +709,9 @@ mod tests {
         interpreter.push_i64(25);
         interpreter.push_i64(-45);
 
-        assert_eq!(interpreter.stack.top().values,
-        vec![Val::Int(5), Val::Int(25), Val::Int(-45)]);
+        assert_eq!(
+            interpreter.stack.top().values,
+            vec![Val::Int(5), Val::Int(25), Val::Int(-45)]
+        );
     }
 }

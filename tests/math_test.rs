@@ -1,7 +1,7 @@
 extern crate fish;
 
-use std::io::{empty, sink};
 use fish::*;
+use std::io::{empty, sink};
 
 #[test]
 fn add_floats_yields_float() {

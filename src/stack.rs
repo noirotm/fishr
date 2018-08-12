@@ -4,14 +4,16 @@ pub enum Error {
 }
 
 pub struct Stack<T>
-    where T: Copy
+where
+    T: Copy,
 {
     pub values: Vec<T>,
     pub register: Option<T>,
 }
 
 impl<T> Default for Stack<T>
-    where T: Copy
+where
+    T: Copy,
 {
     fn default() -> Self {
         Self::new()
@@ -19,7 +21,8 @@ impl<T> Default for Stack<T>
 }
 
 impl<T> Stack<T>
-    where T: Copy
+where
+    T: Copy,
 {
     pub fn new() -> Self {
         Stack {
@@ -124,14 +127,16 @@ impl<T> Stack<T>
 }
 
 pub struct StackOfStacks<T>
-    where T: Copy
+where
+    T: Copy,
 {
     pub initial_stack: Stack<T>,
     pub additional_stacks: Vec<Stack<T>>,
 }
 
 impl<T> Default for StackOfStacks<T>
-    where T: Copy
+where
+    T: Copy,
 {
     fn default() -> Self {
         Self::new()
@@ -139,7 +144,8 @@ impl<T> Default for StackOfStacks<T>
 }
 
 impl<T> StackOfStacks<T>
-    where T: Copy
+where
+    T: Copy,
 {
     pub fn new() -> Self {
         StackOfStacks {
@@ -151,7 +157,10 @@ impl<T> StackOfStacks<T>
     pub fn push_stack(&mut self, moved_items: usize) -> Result<(), Error> {
         let vals = {
             let stack = self.top();
-            let n = stack.len().checked_sub(moved_items).ok_or(Error::StackUnderflow)?;
+            let n = stack
+                .len()
+                .checked_sub(moved_items)
+                .ok_or(Error::StackUnderflow)?;
             stack.values.split_off(n)
         };
 
@@ -173,7 +182,9 @@ impl<T> StackOfStacks<T>
     }
 
     pub fn top(&mut self) -> &mut Stack<T> {
-        self.additional_stacks.last_mut().unwrap_or(&mut self.initial_stack)
+        self.additional_stacks
+            .last_mut()
+            .unwrap_or(&mut self.initial_stack)
     }
 }
 

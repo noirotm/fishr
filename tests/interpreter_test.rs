@@ -1,7 +1,7 @@
 extern crate fish;
 
-use std::io::{empty, sink};
 use fish::*;
+use std::io::{empty, sink};
 
 #[test]
 fn end_works() {
@@ -157,13 +157,17 @@ fn literal_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(0x1),
-                    Val::Byte(0x2),
-                    Val::Byte(0x3),
-                    Val::Byte(0xa),
-                    Val::Byte(0xb),
-                    Val::Byte(0xc)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![
+            Val::Byte(0x1),
+            Val::Byte(0x2),
+            Val::Byte(0x3),
+            Val::Byte(0xa),
+            Val::Byte(0xb),
+            Val::Byte(0xc),
+        ]
+    );
 }
 
 #[test]
@@ -205,8 +209,10 @@ fn substraction_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Int(2), Val::Int(-2)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Int(2), Val::Int(-2)]
+    );
 }
 
 #[test]
@@ -237,8 +243,10 @@ fn multiplication_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Int(42), Val::Int(0)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Int(42), Val::Int(0)]
+    );
 }
 
 #[test]
@@ -269,8 +277,10 @@ fn division_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Float(4.0), Val::Float(2.25)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Float(4.0), Val::Float(2.25)]
+    );
 }
 
 #[test]
@@ -311,8 +321,10 @@ fn modulo_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Int(1), Val::Int(0)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Int(1), Val::Int(0)]
+    );
 }
 
 #[test]
@@ -353,8 +365,10 @@ fn single_quotes_work() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(97), Val::Byte(98), Val::Byte(99), Val::Byte(34)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(97), Val::Byte(98), Val::Byte(99), Val::Byte(34)]
+    );
 }
 
 #[test]
@@ -365,8 +379,10 @@ fn double_quotes_work() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(97), Val::Byte(98), Val::Byte(99), Val::Byte(39)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(97), Val::Byte(98), Val::Byte(99), Val::Byte(39)]
+    );
 }
 
 #[test]
@@ -430,8 +446,10 @@ fn equal_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(1), Val::Byte(0)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(1), Val::Byte(0)]
+    );
 }
 
 #[test]
@@ -462,8 +480,10 @@ fn greater_than_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(0), Val::Byte(0), Val::Byte(1)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(0), Val::Byte(0), Val::Byte(1)]
+    );
 }
 
 #[test]
@@ -494,8 +514,10 @@ fn less_than_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(0), Val::Byte(1), Val::Byte(0)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(0), Val::Byte(1), Val::Byte(0)]
+    );
 }
 
 #[test]
@@ -526,8 +548,10 @@ fn dup_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(1), Val::Byte(2), Val::Byte(3), Val::Byte(3)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(1), Val::Byte(2), Val::Byte(3), Val::Byte(3)]
+    );
 }
 
 #[test]
@@ -548,8 +572,10 @@ fn drop_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(1), Val::Byte(2)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(1), Val::Byte(2)]
+    );
 }
 
 #[test]
@@ -570,8 +596,10 @@ fn swap_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(1), Val::Byte(3), Val::Byte(2)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(1), Val::Byte(3), Val::Byte(2)]
+    );
 }
 
 #[test]
@@ -602,8 +630,10 @@ fn swap2_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(1), Val::Byte(4), Val::Byte(2), Val::Byte(3)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(1), Val::Byte(4), Val::Byte(2), Val::Byte(3)]
+    );
 }
 
 #[test]
@@ -644,8 +674,10 @@ fn rshift_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(4), Val::Byte(1), Val::Byte(2), Val::Byte(3)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(4), Val::Byte(1), Val::Byte(2), Val::Byte(3)]
+    );
 }
 
 #[test]
@@ -656,8 +688,10 @@ fn lshift_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(2), Val::Byte(3), Val::Byte(4), Val::Byte(1)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(2), Val::Byte(3), Val::Byte(4), Val::Byte(1)]
+    );
 }
 
 #[test]
@@ -668,8 +702,10 @@ fn reverse_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(4), Val::Byte(3), Val::Byte(2), Val::Byte(1)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(4), Val::Byte(3), Val::Byte(2), Val::Byte(1)]
+    );
 }
 
 #[test]
@@ -680,8 +716,16 @@ fn len_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(1), Val::Byte(2), Val::Byte(3), Val::Byte(4), Val::Int(4)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![
+            Val::Byte(1),
+            Val::Byte(2),
+            Val::Byte(3),
+            Val::Byte(4),
+            Val::Int(4),
+        ]
+    );
 }
 
 #[test]
@@ -703,8 +747,10 @@ fn new_stack_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(3), Val::Byte(4)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(3), Val::Byte(4)]
+    );
 }
 
 #[test]
@@ -746,15 +792,19 @@ fn remove_stack_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(1),
-                    Val::Byte(2),
-                    Val::Byte(3),
-                    Val::Byte(4),
-                    Val::Byte(5),
-                    Val::Byte(6),
-                    Val::Byte(7),
-                    Val::Byte(8)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![
+            Val::Byte(1),
+            Val::Byte(2),
+            Val::Byte(3),
+            Val::Byte(4),
+            Val::Byte(5),
+            Val::Byte(6),
+            Val::Byte(7),
+            Val::Byte(8),
+        ]
+    );
 }
 
 #[test]
@@ -847,8 +897,10 @@ fn input_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values,
-               vec![Val::Byte(49), Val::Byte(50), Val::Byte(51), Val::Int(-1)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(49), Val::Byte(50), Val::Byte(51), Val::Int(-1)]
+    );
 }
 
 #[test]
@@ -859,9 +911,10 @@ fn switch_register_from_empty_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values, vec![
-        Val::Byte(1), Val::Byte(2), Val::Byte(3)
-    ]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(1), Val::Byte(2), Val::Byte(3)]
+    );
     assert_eq!(interpreter.stack.top().register, Some(Val::Byte(4)));
 }
 
@@ -873,9 +926,10 @@ fn switch_register_from_full_works() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values, vec![
-        Val::Byte(1), Val::Byte(2), Val::Byte(3), Val::Byte(4)
-    ]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(1), Val::Byte(2), Val::Byte(3), Val::Byte(4)]
+    );
     assert_eq!(interpreter.stack.top().register, None);
 }
 
@@ -910,7 +964,10 @@ fn read_memory_outside_codebox_pushes_zero() {
     let result = interpreter.run(&cb);
 
     assert!(result.is_ok());
-    assert_eq!(interpreter.stack.top().values, vec![Val::Byte(0), Val::Byte(0)]);
+    assert_eq!(
+        interpreter.stack.top().values,
+        vec![Val::Byte(0), Val::Byte(0)]
+    );
 }
 
 #[test]
@@ -957,7 +1014,7 @@ fn write_memory_works() {
 
     assert!(result.is_ok());
     assert_eq!(interpreter.stack.top().values, vec![Val::Byte(5)]);
-    assert_eq!(interpreter.memory[&MemPos{x: 9, y: 9}], Val::Byte(5));
+    assert_eq!(interpreter.memory[&MemPos { x: 9, y: 9 }], Val::Byte(5));
 }
 
 #[test]
@@ -990,5 +1047,5 @@ fn write_memory_with_negative_coordinates_works() {
 
     assert!(result.is_ok());
     assert_eq!(interpreter.stack.top().values, vec![Val::Byte(5)]);
-    assert_eq!(interpreter.memory[&MemPos{x: -9, y: -9}], Val::Byte(5));
+    assert_eq!(interpreter.memory[&MemPos { x: -9, y: -9 }], Val::Byte(5));
 }
