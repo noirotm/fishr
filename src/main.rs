@@ -116,9 +116,7 @@ fn main() {
         }
     }
 
-    if matches.is_present("debug") {
-        fish.trace = true;
-    }
+    fish.trace = matches.is_present("debug");
 
     if fish.run(&code_box).is_err() {
         println!("something smells fishy...");
