@@ -265,23 +265,23 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         instruction: u8,
         code: &CodeBox,
     ) -> Result<RuntimeStatus, RuntimeError> {
-        match instruction as char {
+        match instruction {
             // Enter quote mode
-            '\'' => self.state = ParserState::SingleQuoted,
-            '"' => self.state = ParserState::DoubleQuoted,
+            b'\'' => self.state = ParserState::SingleQuoted,
+            b'"' => self.state = ParserState::DoubleQuoted,
 
             // # Movement and execution
             // absolute direction change
-            '>' => self.dir = Direction::Right,
-            '<' => self.dir = Direction::Left,
-            '^' => self.dir = Direction::Up,
-            'v' => self.dir = Direction::Down,
+            b'>' => self.dir = Direction::Right,
+            b'<' => self.dir = Direction::Left,
+            b'^' => self.dir = Direction::Up,
+            b'v' => self.dir = Direction::Down,
 
             // mirrors
-            '/' | '\\' | '|' | '_' | '#' => self.mirror(instruction),
+            b'/' | b'\\' | b'|' | b'_' | b'#' => self.mirror(instruction),
 
             // random direction
-            'x' => {
+            b'x' => {
                 static DIRECTIONS: [Direction; 4] = [
                     Direction::Left,
                     Direction::Right,
@@ -295,11 +295,11 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             }
 
             // skip the following instruction
-            '!' => self.advance(code),
+            b'!' => self.advance(code),
 
             // Conditional trampoline - pop one value off the stack.
             // The next instruction is only executed if the popped value is non-zero.
-            '?' => {
+            b'?' => {
                 match self.stack.top().pop() {
                     Some(v) => {
                         if v.to_i64() == 0 {
@@ -311,86 +311,86 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             }
 
             // jump to (x,y)
-            '.' => self.jump(code)?,
+            b'.' => self.jump(code)?,
 
             // # Literals and operators
             // literal values
-            v @ '0'...'9' | v @ 'a'...'f' => {
-                if let Ok(val) = u8::from_str_radix(format!("{}", v).as_str(), 16) {
+            b'0'...b'9' | b'a'...b'f' => {
+                if let Ok(val) = u8::from_str_radix(format!("{}", instruction as char).as_str(), 16) {
                     self.stack.top().push(Val::Byte(val));
                 }
             }
 
             // arithmetic operations
-            '+' => self.add()?,
-            '-' => self.sub()?,
-            '*' => self.mul()?,
-            ',' => self.div()?,
-            '%' => self.rem()?,
+            b'+' => self.add()?,
+            b'-' => self.sub()?,
+            b'*' => self.mul()?,
+            b',' => self.div()?,
+            b'%' => self.rem()?,
 
             // comparison tests
-            '=' => self.equals()?,
-            ')' => self.gt()?,
-            '(' => self.lt()?,
+            b'=' => self.equals()?,
+            b')' => self.gt()?,
+            b'(' => self.lt()?,
 
             // # Stack manipulation
             // Duplicate the top value on the stack
-            ':' => self
+            b':' => self
                 .stack
                 .top()
                 .dup()
                 .or(Err(RuntimeError::StackUnderflow))?,
             // Remove the top value from the stack
-            '~' => self
+            b'~' => self
                 .stack
                 .top()
                 .drop()
                 .or(Err(RuntimeError::StackUnderflow))?,
             // Swap the top two values on the stack
-            '$' => self
+            b'$' => self
                 .stack
                 .top()
                 .swap()
                 .or(Err(RuntimeError::StackUnderflow))?,
             // Swap the top three values on the stack
-            '@' => self
+            b'@' => self
                 .stack
                 .top()
                 .swap2()
                 .or(Err(RuntimeError::StackUnderflow))?,
             // Shift the entire stack to the right
-            '}' => self.stack.top().rshift(),
+            b'}' => self.stack.top().rshift(),
             // Shift the entire stack to the left
-            '{' => self.stack.top().lshift(),
+            b'{' => self.stack.top().lshift(),
             // Reverse the stack
-            'r' => self.stack.top().values.reverse(),
+            b'r' => self.stack.top().values.reverse(),
             // Push the length of the stack onto the stack
-            'l' => {
+            b'l' => {
                 let l = self.stack.top().values.len();
                 self.stack.top().values.push(Val::Int(l as i64));
             }
 
             // # Stack of stacks
             // Pop x off the stack and create a new stack, moving x values.
-            '[' => {
+            b'[' => {
                 let v = self.pop()?;
                 self.stack
                     .push_stack(v.to_i64() as usize)
                     .or(Err(RuntimeError::StackUnderflow))?;
             }
             // Remove the current stack, moving its values to the top of the underlying stack
-            ']' => self.stack.pop_stack(),
+            b']' => self.stack.pop_stack(),
 
             // # I/O
             // Output value as character
-            'o' => self.char_output()?,
+            b'o' => self.char_output()?,
             // Output value as number
-            'n' => self.num_output()?,
+            b'n' => self.num_output()?,
             // Input byte
-            'i' => self.input()?,
+            b'i' => self.input()?,
 
             // register operation
-            '&' => self
+            b'&' => self
                 .stack
                 .top()
                 .switch_register()
@@ -398,15 +398,15 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             // # Memory operations
             // Push from memory
-            'g' => self.read_memory(code)?,
+            b'g' => self.read_memory(code)?,
             // Pop to memory
-            'p' => self.write_memory(code)?,
+            b'p' => self.write_memory(code)?,
 
             // end execution
-            ';' => return Ok(RuntimeStatus::Stop),
+            b';' => return Ok(RuntimeStatus::Stop),
 
             // nop
-            ' ' => {}
+            b' ' => {}
 
             _ => return Err(RuntimeError::InvalidInstruction),
         }
@@ -429,8 +429,8 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     }
 
     fn mirror(&mut self, instruction: u8) {
-        match instruction as char {
-            '/' => {
+        match instruction {
+            b'/' => {
                 self.dir = match self.dir {
                     Direction::Right => Direction::Up,
                     Direction::Left => Direction::Down,
@@ -438,7 +438,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                     Direction::Down => Direction::Left,
                 }
             }
-            '\\' => {
+            b'\\' => {
                 self.dir = match self.dir {
                     Direction::Right => Direction::Down,
                     Direction::Left => Direction::Up,
@@ -446,7 +446,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                     Direction::Down => Direction::Right,
                 }
             }
-            '|' => {
+            b'|' => {
                 self.dir = match self.dir {
                     Direction::Right => Direction::Left,
                     Direction::Left => Direction::Right,
@@ -454,7 +454,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                     Direction::Down => Direction::Down,
                 }
             }
-            '_' => {
+            b'_' => {
                 self.dir = match self.dir {
                     Direction::Right => Direction::Right,
                     Direction::Left => Direction::Left,
@@ -462,7 +462,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                     Direction::Down => Direction::Up,
                 }
             }
-            '#' => {
+            b'#' => {
                 self.dir = match self.dir {
                     Direction::Right => Direction::Left,
                     Direction::Left => Direction::Right,
