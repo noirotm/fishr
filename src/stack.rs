@@ -3,17 +3,14 @@ pub enum Error {
     StackUnderflow,
 }
 
-pub struct Stack<T>
-where
-    T: Copy,
-{
+pub struct Stack<T> {
     pub values: Vec<T>,
     pub register: Option<T>,
 }
 
 impl<T> Default for Stack<T>
 where
-    T: Copy,
+    T: Clone,
 {
     fn default() -> Self {
         Self::new()
@@ -22,7 +19,7 @@ where
 
 impl<T> Stack<T>
 where
-    T: Copy,
+    T: Clone,
 {
     pub fn new() -> Self {
         Stack {
@@ -57,14 +54,9 @@ where
     }
 
     pub fn dup(&mut self) -> Result<(), Error> {
-        match self.values.len() {
-            0 => Err(Error::StackUnderflow),
-            n => {
-                let v = self.values[n - 1];
-                self.values.push(v);
-                Ok(())
-            }
-        }
+        let v = self.values.last().ok_or(Error::StackUnderflow)?.clone();
+        self.values.push(v);
+        Ok(())
     }
 
     pub fn drop(&mut self) -> Result<(), Error> {
@@ -79,39 +71,29 @@ where
 
     pub fn swap(&mut self) -> Result<(), Error> {
         match self.values.len() {
-            n if n >= 2 => {
-                let x = self.values[n - 1];
-                let y = self.values[n - 2];
-                self.values[n - 2] = x;
-                self.values[n - 1] = y;
+            0 | 1 => Err(Error::StackUnderflow),
+            n => {
+                self.values.swap(n - 2, n - 1);
                 Ok(())
             }
-            _ => Err(Error::StackUnderflow),
         }
     }
 
     pub fn swap2(&mut self) -> Result<(), Error> {
         match self.values.len() {
-            n if n >= 3 => {
-                let x = self.values[n - 3];
-                let y = self.values[n - 2];
-                let z = self.values[n - 1];
-                self.values[n - 3] = z;
-                self.values[n - 2] = x;
-                self.values[n - 1] = y;
+            0...2 => Err(Error::StackUnderflow),
+            n => {
+                self.values.swap(n - 2, n - 1);
+                self.values.swap(n - 3, n - 2);
                 Ok(())
             }
-            _ => Err(Error::StackUnderflow),
         }
     }
 
     pub fn rshift(&mut self) {
-        match self.values.len() {
-            0 | 1 => {}
-            n => {
-                let mut v: Vec<_> = self.values.drain(0..n - 1).collect();
-                self.values.append(&mut v);
-            }
+        let e = self.values.pop();
+        if let Some(e) = e {
+            self.values.insert(0, e);
         }
     }
 
@@ -126,17 +108,14 @@ where
     }
 }
 
-pub struct StackOfStacks<T>
-where
-    T: Copy,
-{
+pub struct StackOfStacks<T> {
     pub initial_stack: Stack<T>,
     pub additional_stacks: Vec<Stack<T>>,
 }
 
 impl<T> Default for StackOfStacks<T>
 where
-    T: Copy,
+    T: Clone,
 {
     fn default() -> Self {
         Self::new()
@@ -145,11 +124,11 @@ where
 
 impl<T> StackOfStacks<T>
 where
-    T: Copy,
+    T: Clone,
 {
     pub fn new() -> Self {
         StackOfStacks {
-            initial_stack: Stack::<T>::new(),
+            initial_stack: Stack::new(),
             additional_stacks: vec![],
         }
     }
@@ -164,7 +143,7 @@ where
             stack.values.split_off(n)
         };
 
-        self.additional_stacks.push(Stack::<T> {
+        self.additional_stacks.push(Stack {
             values: vals,
             register: None,
         });
