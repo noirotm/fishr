@@ -3,7 +3,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate rand;
 
-use rand::{thread_rng, Rng, ThreadRng};
+use rand::prelude::*;
 use serde_json::{to_value, Value};
 use std::cmp;
 use std::collections::HashMap;
@@ -289,7 +289,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                     Direction::Down,
                 ];
 
-                if let Some(dir) = self.rng.choose(&DIRECTIONS) {
+                if let Some(dir) = DIRECTIONS.choose(&mut self.rng) {
                     self.dir = dir.clone();
                 }
             }
@@ -316,8 +316,9 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // # Literals and operators
             // literal values
             b'0'...b'9' | b'a'...b'f' => {
-                if let Ok(val) = u8::from_str_radix(format!("{}", instruction as char).as_str(), 16) {
-                    self.stack.top().push(Val::Byte(val));
+                if let Some(val) = (instruction as char).to_digit(16)
+                {
+                    self.stack.top().push((val as u8).into());
                 }
             }
 
