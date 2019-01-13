@@ -12,12 +12,15 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::{stderr, BufReader, Bytes, Cursor};
 use std::path::Path;
+use std::thread;
+use std::time::Duration;
 
 mod val;
 pub use val::Val;
 
 mod stack;
 pub use stack::{Stack, StackOfStacks};
+
 
 pub struct CodeBox {
     data: Vec<Vec<u8>>,
@@ -64,7 +67,7 @@ impl CodeBox {
 
     fn get(&self, x: usize, y: usize) -> Option<u8> {
         if x < self.width && y < self.height {
-            let line = self.data.get(y).expect("line should not be None");
+            let line = self.data.get(y)?;
             Some(line.get(x).map_or(b' ', |c| *c))
         } else {
             None
@@ -119,6 +122,7 @@ pub struct Interpreter<R: Read, W: Write> {
     pub memory: HashMap<MemPos, Val>,
 
     pub trace: bool,
+    pub tick: Option<Duration>,
 
     input: Bytes<R>,
     output: W,
@@ -135,6 +139,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             stack: StackOfStacks::new(),
             memory: HashMap::new(),
             trace: false,
+            tick: None,
             input: input.bytes(),
             output,
             rng: thread_rng(),
@@ -209,6 +214,10 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                 Ok(RuntimeStatus::Continue) => {}
                 Ok(RuntimeStatus::Stop) => return Ok(()),
                 Err(err) => return Err(err),
+            }
+
+            if let Some(duration) = self.tick {
+                thread::sleep(duration);
             }
 
             self.advance(code);

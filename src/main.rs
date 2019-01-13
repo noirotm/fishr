@@ -3,6 +3,7 @@ extern crate fish;
 
 use clap::{App, Arg};
 use std::process;
+use std::time::Duration;
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -74,21 +75,15 @@ fn main() {
     let code_box = match matches.value_of("code") {
         Some(c) => fish::CodeBox::load_from_string(&c),
         None => {
-            let input = match matches.value_of("INPUT") {
-                Some(v) => v,
-                None => {
-                    println!("{}", matches.usage());
-                    process::exit(1)
-                }
-            };
+            let input = matches.value_of("INPUT").unwrap_or_else(|| {
+                println!("{}", matches.usage());
+                process::exit(1)
+            });
 
-            match fish::CodeBox::load_from_file(&input) {
-                Ok(cb) => cb,
-                Err(e) => {
-                    println!("Error: {}", e);
-                    process::exit(2)
-                }
-            }
+            fish::CodeBox::load_from_file(&input).unwrap_or_else(|e| {
+                println!("Error: {}", e);
+                process::exit(2)
+            })
         }
     };
 
@@ -105,18 +100,23 @@ fn main() {
 
     if let Some(numbers) = matches.values_of("value") {
         for c in numbers {
-            let n = match c.parse::<i64>() {
-                Ok(v) => v,
-                Err(e) => {
-                    println!("Error: {}", e);
-                    process::exit(2)
-                }
-            };
+            let n = c.parse::<i64>().unwrap_or_else(|e| {
+                println!("Error: {}", e);
+                process::exit(2)
+            });
             fish.push_i64(n);
         }
     }
 
     fish.trace = matches.is_present("debug");
+
+    if let Some(tick) = matches.value_of("tick") {
+        let seconds = tick.parse::<u64>().unwrap_or_else(|e| {
+            println!("Error: {}", e);
+            process::exit(2)
+        });
+        fish.tick = Some(Duration::from_secs(seconds));
+    }
 
     if fish.run(&code_box).is_err() {
         println!("something smells fishy...");
