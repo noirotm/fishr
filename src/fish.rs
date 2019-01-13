@@ -168,12 +168,12 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             "next_instr": instruction as char,
 
             "stack": top_stack.values.iter().map(|val| match val {
-                &Val::Byte(val) => to_value(val),
-                &Val::Int(val) => to_value(val),
-                &Val::Float(val) => to_value(val),
+                Val::Byte(val) => to_value(val),
+                Val::Int(val) => to_value(val),
+                Val::Float(val) => to_value(val),
             }.unwrap_or(Value::Null)).collect::<Vec<_>>(),
 
-            "register": top_stack.register.clone().map_or(Value::Null, |val| match val {
+            "register": top_stack.register.as_ref().map(|val| match val {
                 Val::Byte(val) => to_value(val),
                 Val::Int(val) => to_value(val),
                 Val::Float(val) => to_value(val),
