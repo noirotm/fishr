@@ -154,6 +154,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             return;
         }
 
+        let top_stack = self.stack.top();
         let state = json!({
             "ip": vec![self.ip.chr, self.ip.line],
 
@@ -166,13 +167,13 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             "next_instr": instruction as char,
 
-            "stack": self.stack.top().values.iter().map(|val| match *val {
-                Val::Byte(val) => to_value(val),
-                Val::Int(val) => to_value(val),
-                Val::Float(val) => to_value(val),
+            "stack": top_stack.values.iter().map(|val| match val {
+                &Val::Byte(val) => to_value(val),
+                &Val::Int(val) => to_value(val),
+                &Val::Float(val) => to_value(val),
             }.unwrap_or(Value::Null)).collect::<Vec<_>>(),
 
-            "register": self.stack.top().register.map_or(Value::Null, |val| match val {
+            "register": top_stack.register.clone().map_or(Value::Null, |val| match val {
                 Val::Byte(val) => to_value(val),
                 Val::Int(val) => to_value(val),
                 Val::Float(val) => to_value(val),
@@ -316,8 +317,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // # Literals and operators
             // literal values
             b'0'...b'9' | b'a'...b'f' => {
-                if let Some(val) = (instruction as char).to_digit(16)
-                {
+                if let Some(val) = (instruction as char).to_digit(16) {
                     self.stack.top().push((val as u8).into());
                 }
             }
@@ -500,7 +500,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let x = self.pop()?;
         let y = self.pop()?;
 
-        let res = y.checked_add(x).ok_or(RuntimeError::IntegerOverflow)?;
+        let res = y.checked_add(&x).ok_or(RuntimeError::IntegerOverflow)?;
         self.stack.top().push(res);
         Ok(())
     }
@@ -509,7 +509,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let x = self.pop()?;
         let y = self.pop()?;
 
-        let res = y.checked_sub(x).ok_or(RuntimeError::IntegerOverflow)?;
+        let res = y.checked_sub(&x).ok_or(RuntimeError::IntegerOverflow)?;
         self.stack.top().push(res);
         Ok(())
     }
@@ -518,7 +518,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let x = self.pop()?;
         let y = self.pop()?;
 
-        let res = y.checked_mul(x).ok_or(RuntimeError::IntegerOverflow)?;
+        let res = y.checked_mul(&x).ok_or(RuntimeError::IntegerOverflow)?;
         self.stack.top().push(res);
         Ok(())
     }
@@ -603,7 +603,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         // fetch from map only if memory is dirty
         if self.memory_is_dirty {
             if let Some(v) = self.memory.get(&MemPos { x, y }) {
-                return *v;
+                return v.clone();
             }
         }
 

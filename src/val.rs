@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Val {
     Byte(u8),
     Int(i64),
@@ -32,24 +32,24 @@ impl Val {
         }
     }
 
-    pub fn checked_add(&self, other: Self) -> Option<Val> {
-        match (*self, other) {
+    pub fn checked_add(&self, other: &Self) -> Option<Val> {
+        match (self, other) {
             (Val::Float(f), v) => Some(Val::Float(f + v.to_f64())),
             (v, Val::Float(f)) => Some(Val::Float(v.to_f64() + f)),
             _ => self.to_i64().checked_add(other.to_i64()).map(Val::Int),
         }
     }
 
-    pub fn checked_sub(&self, other: Self) -> Option<Val> {
-        match (*self, other) {
+    pub fn checked_sub(&self, other: &Self) -> Option<Val> {
+        match (self, other) {
             (Val::Float(f), v) => Some(Val::Float(f - v.to_f64())),
             (v, Val::Float(f)) => Some(Val::Float(v.to_f64() - f)),
             _ => self.to_i64().checked_sub(other.to_i64()).map(Val::Int),
         }
     }
 
-    pub fn checked_mul(&self, other: Self) -> Option<Val> {
-        match (*self, other) {
+    pub fn checked_mul(&self, other: &Self) -> Option<Val> {
+        match (self, other) {
             (Val::Float(f), v) => Some(Val::Float(f * v.to_f64())),
             (v, Val::Float(f)) => Some(Val::Float(v.to_f64() * f)),
             _ => self.to_i64().checked_mul(other.to_i64()).map(Val::Int),
@@ -95,7 +95,7 @@ impl From<Val> for f64 {
 
 impl PartialEq for Val {
     fn eq(&self, other: &Self) -> bool {
-        match (*self, *other) {
+        match (self, other) {
             (Val::Float(a), Val::Float(b)) => a == b,
             (Val::Float(_), _) | (_, Val::Float(_)) => false,
             _ => self.to_i64() == other.to_i64(),
