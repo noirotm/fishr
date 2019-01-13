@@ -135,7 +135,7 @@ where
 
     pub fn push_stack(&mut self, moved_items: usize) -> Result<(), Error> {
         let vals = {
-            let stack = self.top();
+            let stack = self.top_mut();
             let n = stack
                 .len()
                 .checked_sub(moved_items)
@@ -153,14 +153,20 @@ where
 
     pub fn pop_stack(&mut self) {
         if let Some(stack) = self.additional_stacks.pop() {
-            self.top().values.extend(stack.values);
+            self.top_mut().values.extend(stack.values);
         } else {
             self.initial_stack.values.clear();
             self.initial_stack.register = None;
         }
     }
 
-    pub fn top(&mut self) -> &mut Stack<T> {
+    pub fn top(&self) -> &Stack<T> {
+        self.additional_stacks
+            .last()
+            .unwrap_or(&self.initial_stack)
+    }
+
+    pub fn top_mut(&mut self) -> &mut Stack<T> {
         self.additional_stacks
             .last_mut()
             .unwrap_or(&mut self.initial_stack)
@@ -394,9 +400,9 @@ mod tests {
         #[test]
         fn push_stack_works() {
             let mut s = StackOfStacks::new();
-            s.top().push(5);
-            s.top().push(42);
-            s.top().push(58);
+            s.top_mut().push(5);
+            s.top_mut().push(42);
+            s.top_mut().push(58);
 
             let res = s.push_stack(2);
 
@@ -411,9 +417,9 @@ mod tests {
         #[test]
         fn push_stack_with_all_elements_works() {
             let mut s = StackOfStacks::new();
-            s.top().push(5);
-            s.top().push(42);
-            s.top().push(58);
+            s.top_mut().push(5);
+            s.top_mut().push(42);
+            s.top_mut().push(58);
 
             let res = s.push_stack(3);
 
@@ -428,9 +434,9 @@ mod tests {
         #[test]
         fn push_stack_with_zero_elements_works() {
             let mut s = StackOfStacks::new();
-            s.top().push(5);
-            s.top().push(42);
-            s.top().push(58);
+            s.top_mut().push(5);
+            s.top_mut().push(42);
+            s.top_mut().push(58);
 
             let res = s.push_stack(0);
 
@@ -445,8 +451,8 @@ mod tests {
         #[test]
         fn push_stack_with_too_many_values_fails() {
             let mut s = StackOfStacks::new();
-            s.top().push(5);
-            s.top().push(42);
+            s.top_mut().push(5);
+            s.top_mut().push(42);
 
             let res = s.push_stack(3);
 
@@ -456,9 +462,9 @@ mod tests {
         #[test]
         fn pop_stack_works() {
             let mut s = StackOfStacks::new();
-            s.top().push(5);
-            s.top().push(42);
-            s.top().push(58);
+            s.top_mut().push(5);
+            s.top_mut().push(42);
+            s.top_mut().push(58);
 
             let res = s.push_stack(2);
 
@@ -474,11 +480,11 @@ mod tests {
         #[test]
         fn pop_stack_with_base_register_works() {
             let mut s = StackOfStacks::new();
-            s.top().push(5);
-            s.top().push(42);
-            s.top().push(58);
+            s.top_mut().push(5);
+            s.top_mut().push(42);
+            s.top_mut().push(58);
 
-            let _ = s.top().switch_register().unwrap();
+            let _ = s.top_mut().switch_register().unwrap();
             let _ = s.push_stack(1).unwrap();
 
             s.pop_stack();
@@ -491,12 +497,12 @@ mod tests {
         #[test]
         fn pop_stack_with_top_register_works() {
             let mut s = StackOfStacks::new();
-            s.top().push(5);
-            s.top().push(42);
-            s.top().push(58);
+            s.top_mut().push(5);
+            s.top_mut().push(42);
+            s.top_mut().push(58);
 
             let _ = s.push_stack(2).unwrap();
-            let _ = s.top().switch_register().unwrap();
+            let _ = s.top_mut().switch_register().unwrap();
 
             s.pop_stack();
 
@@ -508,11 +514,11 @@ mod tests {
         #[test]
         fn pop_initial_stack_makes_it_empty() {
             let mut s = StackOfStacks::new();
-            s.top().push(5);
-            s.top().push(42);
-            s.top().push(58);
+            s.top_mut().push(5);
+            s.top_mut().push(42);
+            s.top_mut().push(58);
 
-            let _ = s.top().switch_register().unwrap();
+            let _ = s.top_mut().switch_register().unwrap();
 
             s.pop_stack();
 

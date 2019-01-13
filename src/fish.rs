@@ -154,7 +154,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         self.state = ParserState::Normal;
     }
 
-    pub fn dump_state(&mut self, instruction: u8) {
+    pub fn dump_state(&self, instruction: u8) {
         if instruction == b' ' {
             return;
         }
@@ -190,12 +190,12 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
     pub fn push_str(&mut self, s: &str) {
         for c in s.bytes() {
-            self.stack.top().push(Val::Byte(c as u8));
+            self.stack.top_mut().push(Val::Byte(c as u8));
         }
     }
 
     pub fn push_i64(&mut self, v: i64) {
-        self.stack.top().push(Val::Int(v));
+        self.stack.top_mut().push(Val::Int(v));
     }
 
     pub fn run(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
@@ -251,14 +251,14 @@ impl<R: Read, W: Write> Interpreter<R, W> {
                 match instruction as char {
                     // Exit quote mode
                     '\'' => self.state = ParserState::Normal,
-                    _ => self.stack.top().push(Val::Byte(instruction)),
+                    _ => self.stack.top_mut().push(Val::Byte(instruction)),
                 }
             }
             ParserState::DoubleQuoted => {
                 match instruction as char {
                     // Exit quote mode
                     '"' => self.state = ParserState::Normal,
-                    _ => self.stack.top().push(Val::Byte(instruction)),
+                    _ => self.stack.top_mut().push(Val::Byte(instruction)),
                 }
             }
         }
@@ -267,7 +267,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
     #[inline]
     fn pop(&mut self) -> Result<Val, RuntimeError> {
-        self.stack.top().pop().ok_or(RuntimeError::StackUnderflow)
+        self.stack.top_mut().pop().ok_or(RuntimeError::StackUnderflow)
     }
 
     fn execute_instruction(
@@ -310,7 +310,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // Conditional trampoline - pop one value off the stack.
             // The next instruction is only executed if the popped value is non-zero.
             b'?' => {
-                match self.stack.top().pop() {
+                match self.stack.top_mut().pop() {
                     Some(v) => {
                         if v.to_i64() == 0 {
                             self.advance(code);
@@ -327,7 +327,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // literal values
             b'0'...b'9' | b'a'...b'f' => {
                 if let Some(val) = (instruction as char).to_digit(16) {
-                    self.stack.top().push((val as u8).into());
+                    self.stack.top_mut().push((val as u8).into());
                 }
             }
 
@@ -347,37 +347,37 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // Duplicate the top value on the stack
             b':' => self
                 .stack
-                .top()
+                .top_mut()
                 .dup()
                 .or(Err(RuntimeError::StackUnderflow))?,
             // Remove the top value from the stack
             b'~' => self
                 .stack
-                .top()
+                .top_mut()
                 .drop()
                 .or(Err(RuntimeError::StackUnderflow))?,
             // Swap the top two values on the stack
             b'$' => self
                 .stack
-                .top()
+                .top_mut()
                 .swap()
                 .or(Err(RuntimeError::StackUnderflow))?,
             // Swap the top three values on the stack
             b'@' => self
                 .stack
-                .top()
+                .top_mut()
                 .swap2()
                 .or(Err(RuntimeError::StackUnderflow))?,
             // Shift the entire stack to the right
-            b'}' => self.stack.top().rshift(),
+            b'}' => self.stack.top_mut().rshift(),
             // Shift the entire stack to the left
-            b'{' => self.stack.top().lshift(),
+            b'{' => self.stack.top_mut().lshift(),
             // Reverse the stack
-            b'r' => self.stack.top().values.reverse(),
+            b'r' => self.stack.top_mut().values.reverse(),
             // Push the length of the stack onto the stack
             b'l' => {
-                let l = self.stack.top().values.len();
-                self.stack.top().values.push(Val::Int(l as i64));
+                let l = self.stack.top_mut().values.len();
+                self.stack.top_mut().values.push(Val::Int(l as i64));
             }
 
             // # Stack of stacks
@@ -402,7 +402,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             // register operation
             b'&' => self
                 .stack
-                .top()
+                .top_mut()
                 .switch_register()
                 .or(Err(RuntimeError::StackUnderflow))?,
 
@@ -510,7 +510,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let y = self.pop()?;
 
         let res = y.checked_add(&x).ok_or(RuntimeError::IntegerOverflow)?;
-        self.stack.top().push(res);
+        self.stack.top_mut().push(res);
         Ok(())
     }
 
@@ -519,7 +519,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let y = self.pop()?;
 
         let res = y.checked_sub(&x).ok_or(RuntimeError::IntegerOverflow)?;
-        self.stack.top().push(res);
+        self.stack.top_mut().push(res);
         Ok(())
     }
 
@@ -528,7 +528,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let y = self.pop()?;
 
         let res = y.checked_mul(&x).ok_or(RuntimeError::IntegerOverflow)?;
-        self.stack.top().push(res);
+        self.stack.top_mut().push(res);
         Ok(())
     }
 
@@ -541,7 +541,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
             return Err(RuntimeError::DivideByZero);
         }
 
-        self.stack.top().push(Val::Float(res));
+        self.stack.top_mut().push(Val::Float(res));
         Ok(())
     }
 
@@ -556,7 +556,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let rem = y % x;
         let modulo = rem.checked_add(x).ok_or(RuntimeError::IntegerOverflow)? % x;
 
-        self.stack.top().push(Val::Int(modulo));
+        self.stack.top_mut().push(Val::Int(modulo));
         Ok(())
     }
 
@@ -565,7 +565,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let y = self.pop()?.to_i64();
 
         let res = y == x;
-        self.stack.top().push(Val::Byte(res as u8));
+        self.stack.top_mut().push(Val::Byte(res as u8));
         Ok(())
     }
 
@@ -574,7 +574,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let y = self.pop()?.to_i64();
 
         let res = y > x;
-        self.stack.top().push(Val::Byte(res as u8));
+        self.stack.top_mut().push(Val::Byte(res as u8));
         Ok(())
     }
 
@@ -583,7 +583,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let y = self.pop()?.to_i64();
 
         let res = y < x;
-        self.stack.top().push(Val::Byte(res as u8));
+        self.stack.top_mut().push(Val::Byte(res as u8));
         Ok(())
     }
 
@@ -601,9 +601,9 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
     fn input(&mut self) -> Result<(), RuntimeError> {
         match self.input.next() {
-            Some(Ok(b)) => self.stack.top().push(Val::Byte(b)),
+            Some(Ok(b)) => self.stack.top_mut().push(Val::Byte(b)),
             Some(Err(_)) => return Err(RuntimeError::IOError),
-            None => self.stack.top().push(Val::Int(-1)),
+            None => self.stack.top_mut().push(Val::Int(-1)),
         }
         Ok(())
     }
@@ -628,7 +628,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         let x = self.pop()?.to_i64();
 
         let val = self.get_memory(code, x, y);
-        self.stack.top().push(val);
+        self.stack.top_mut().push(val);
         Ok(())
     }
 
