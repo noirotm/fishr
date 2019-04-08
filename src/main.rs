@@ -1,6 +1,5 @@
 use clap::{App, Arg};
-use std::process;
-use std::time::Duration;
+use std::{process, time::Duration};
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");

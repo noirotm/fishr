@@ -1,21 +1,20 @@
-use rand::prelude::*;
-use serde_json::{to_value, Value, json};
-use std::cmp;
-use std::collections::HashMap;
-use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::{stderr, BufReader, Bytes, Cursor};
-use std::path::Path;
-use std::thread;
-use std::time::Duration;
-
-mod val;
-pub use crate::val::Val;
-
 mod stack;
-pub use crate::stack::{Stack, StackOfStacks};
+mod val;
 
+pub use crate::stack::{Stack, StackOfStacks};
+pub use crate::val::Val;
+use rand::prelude::*;
+use serde_json::{json, to_value, Value};
+use std::{
+    cmp,
+    collections::HashMap,
+    error::Error,
+    fs::File,
+    io::{prelude::*, stderr, BufReader, Bytes, Cursor},
+    path::Path,
+    thread,
+    time::Duration,
+};
 
 pub struct CodeBox {
     data: Vec<Vec<u8>>,
@@ -262,7 +261,10 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
     #[inline]
     fn pop(&mut self) -> Result<Val, RuntimeError> {
-        self.stack.top_mut().pop().ok_or(RuntimeError::StackUnderflow)
+        self.stack
+            .top_mut()
+            .pop()
+            .ok_or(RuntimeError::StackUnderflow)
     }
 
     fn execute_instruction(
