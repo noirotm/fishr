@@ -1,10 +1,5 @@
-extern crate serde;
-#[macro_use]
-extern crate serde_json;
-extern crate rand;
-
 use rand::prelude::*;
-use serde_json::{to_value, Value};
+use serde_json::{to_value, Value, json};
 use std::cmp;
 use std::collections::HashMap;
 use std::error::Error;
@@ -16,10 +11,10 @@ use std::thread;
 use std::time::Duration;
 
 mod val;
-pub use val::Val;
+pub use crate::val::Val;
 
 mod stack;
-pub use stack::{Stack, StackOfStacks};
+pub use crate::stack::{Stack, StackOfStacks};
 
 
 pub struct CodeBox {

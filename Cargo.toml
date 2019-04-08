@@ -7,6 +7,7 @@ description = "Fish (><>) esoteric language interpreter"
 repository = "https://github.com/noirotm/fishr"
 keywords = ["cli", "interpreter", "esoteric", "fish"]
 readme = "README.md"
+edition = "2018"
 
 [lib]
 name = "fish"

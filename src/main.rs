@@ -1,6 +1,3 @@
-extern crate clap;
-extern crate fish;
-
 use clap::{App, Arg};
 use std::process;
 use std::time::Duration;

@@ -1,5 +1,3 @@
-extern crate fish;
-
 use fish::*;
 use std::io::{empty, sink};
 
