@@ -8,11 +8,11 @@ use serde_json::{json, to_value, Value};
 use std::{
     cmp,
     collections::HashMap,
-    error::Error,
     fs::File,
+    io,
     io::{prelude::*, stderr, BufReader, Bytes, Cursor},
     path::Path,
-    thread,
+    result, thread,
     time::Duration,
 };
 
@@ -23,7 +23,7 @@ pub struct CodeBox {
 }
 
 impl CodeBox {
-    pub fn load<R: Read>(r: R) -> Result<CodeBox, Box<Error>> {
+    pub fn load<R: Read>(r: R) -> io::Result<CodeBox> {
         let mut code_box = CodeBox {
             data: vec![],
             width: 0,
@@ -35,7 +35,7 @@ impl CodeBox {
         Ok(code_box)
     }
 
-    pub fn load_from_file<P: AsRef<Path>>(filename: P) -> Result<CodeBox, Box<Error>> {
+    pub fn load_from_file<P: AsRef<Path>>(filename: P) -> io::Result<CodeBox> {
         let f = File::open(filename)?;
         Self::load(f)
     }
@@ -96,6 +96,8 @@ pub enum RuntimeError {
     DivideByZero,
     IOError,
 }
+
+pub type Result<T> = result::Result<T, RuntimeError>;
 
 enum ParserState {
     Normal,
@@ -192,7 +194,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         self.stack.top_mut().push(Val::Int(v));
     }
 
-    pub fn run(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
+    pub fn run(&mut self, code: &CodeBox) -> Result<()> {
         self.reset();
         loop {
             let instruction = match self.fetch(code) {
@@ -234,11 +236,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         code.get(self.ip.chr, self.ip.line)
     }
 
-    pub fn execute(
-        &mut self,
-        instruction: u8,
-        code: &CodeBox,
-    ) -> Result<RuntimeStatus, RuntimeError> {
+    pub fn execute(&mut self, instruction: u8, code: &CodeBox) -> Result<RuntimeStatus> {
         match self.state {
             ParserState::Normal => return self.execute_instruction(instruction, code),
             ParserState::SingleQuoted => {
@@ -260,18 +258,14 @@ impl<R: Read, W: Write> Interpreter<R, W> {
     }
 
     #[inline]
-    fn pop(&mut self) -> Result<Val, RuntimeError> {
+    fn pop(&mut self) -> Result<Val> {
         self.stack
             .top_mut()
             .pop()
             .ok_or(RuntimeError::StackUnderflow)
     }
 
-    fn execute_instruction(
-        &mut self,
-        instruction: u8,
-        code: &CodeBox,
-    ) -> Result<RuntimeStatus, RuntimeError> {
+    fn execute_instruction(&mut self, instruction: u8, code: &CodeBox) -> Result<RuntimeStatus> {
         match instruction {
             // Enter quote mode
             b'\'' => self.state = ParserState::SingleQuoted,
@@ -481,7 +475,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         }
     }
 
-    fn jump(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
+    fn jump(&mut self, code: &CodeBox) -> Result<()> {
         let y = self.pop()?.to_i64();
         let x = self.pop()?.to_i64();
 
@@ -502,7 +496,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn add(&mut self) -> Result<(), RuntimeError> {
+    fn add(&mut self) -> Result<()> {
         let x = self.pop()?;
         let y = self.pop()?;
 
@@ -511,7 +505,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn sub(&mut self) -> Result<(), RuntimeError> {
+    fn sub(&mut self) -> Result<()> {
         let x = self.pop()?;
         let y = self.pop()?;
 
@@ -520,7 +514,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn mul(&mut self) -> Result<(), RuntimeError> {
+    fn mul(&mut self) -> Result<()> {
         let x = self.pop()?;
         let y = self.pop()?;
 
@@ -529,7 +523,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn div(&mut self) -> Result<(), RuntimeError> {
+    fn div(&mut self) -> Result<()> {
         let x = self.pop()?;
         let y = self.pop()?;
 
@@ -542,7 +536,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn rem(&mut self) -> Result<(), RuntimeError> {
+    fn rem(&mut self) -> Result<()> {
         let x = self.pop()?.to_i64();
         let y = self.pop()?.to_i64();
 
@@ -557,7 +551,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn equals(&mut self) -> Result<(), RuntimeError> {
+    fn equals(&mut self) -> Result<()> {
         let x = self.pop()?.to_i64();
         let y = self.pop()?.to_i64();
 
@@ -566,7 +560,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn gt(&mut self) -> Result<(), RuntimeError> {
+    fn gt(&mut self) -> Result<()> {
         let x = self.pop()?.to_i64();
         let y = self.pop()?.to_i64();
 
@@ -575,7 +569,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn lt(&mut self) -> Result<(), RuntimeError> {
+    fn lt(&mut self) -> Result<()> {
         let x = self.pop()?.to_i64();
         let y = self.pop()?.to_i64();
 
@@ -584,19 +578,19 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn char_output(&mut self) -> Result<(), RuntimeError> {
+    fn char_output(&mut self) -> Result<()> {
         let c = self.pop()?.to_u8() as char;
         write!(&mut self.output, "{}", c).or(Err(RuntimeError::IOError))
     }
 
-    fn num_output(&mut self) -> Result<(), RuntimeError> {
+    fn num_output(&mut self) -> Result<()> {
         match self.pop()? {
             Val::Float(f) => write!(&mut self.output, "{}", f).or(Err(RuntimeError::IOError)),
             v => write!(&mut self.output, "{}", v.to_i64()).or(Err(RuntimeError::IOError)),
         }
     }
 
-    fn input(&mut self) -> Result<(), RuntimeError> {
+    fn input(&mut self) -> Result<()> {
         match self.input.next() {
             Some(Ok(b)) => self.stack.top_mut().push(Val::Byte(b)),
             Some(Err(_)) => return Err(RuntimeError::IOError),
@@ -620,7 +614,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         })
     }
 
-    fn read_memory(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
+    fn read_memory(&mut self, code: &CodeBox) -> Result<()> {
         let y = self.pop()?.to_i64();
         let x = self.pop()?.to_i64();
 
@@ -629,7 +623,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
         Ok(())
     }
 
-    fn write_memory(&mut self, code: &CodeBox) -> Result<(), RuntimeError> {
+    fn write_memory(&mut self, code: &CodeBox) -> Result<()> {
         let y = self.pop()?.to_i64();
         let x = self.pop()?.to_i64();
         let v = self.pop()?;
