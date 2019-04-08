@@ -161,9 +161,7 @@ where
     }
 
     pub fn top(&self) -> &Stack<T> {
-        self.additional_stacks
-            .last()
-            .unwrap_or(&self.initial_stack)
+        self.additional_stacks.last().unwrap_or(&self.initial_stack)
     }
 
     pub fn top_mut(&mut self) -> &mut Stack<T> {
@@ -175,356 +173,355 @@ where
 
 #[cfg(test)]
 mod tests {
-    mod stack {
-        use super::super::*;
+    use super::*;
 
-        #[test]
-        fn new_works() {
-            let stack = Stack::<isize>::new();
+    #[test]
+    fn new_works() {
+        let stack = Stack::<isize>::new();
 
-            assert!(stack.is_empty());
-            assert_eq!(stack.register, None);
-        }
-
-        #[test]
-        fn push_works() {
-            let mut stack = Stack::new();
-            stack.push(5);
-            stack.push(42);
-            stack.push(58);
-
-            assert_eq!(stack.len(), 3);
-            assert_eq!(stack.values, vec![5, 42, 58]);
-        }
-
-        #[test]
-        fn pop_works() {
-            let mut stack = Stack::<isize>::new();
-            stack.push(5);
-
-            assert_eq!(stack.pop(), Some(5));
-        }
-
-        #[test]
-        fn pop_empty_stack_returns_none() {
-            let mut stack = Stack::<isize>::new();
-            assert_eq!(stack.pop(), None);
-        }
-
-        #[test]
-        fn dup_works() {
-            let mut stack = Stack::new();
-            stack.push(5);
-            stack.push(42);
-
-            let res = stack.dup();
-
-            assert!(res.is_ok());
-            assert_eq!(stack.values, vec![5, 42, 42]);
-        }
-
-        #[test]
-        fn dup_with_empty_stack_fails() {
-            let mut stack = Stack::<isize>::new();
-
-            let res = stack.dup();
-
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
-
-        #[test]
-        fn drop_works() {
-            let mut stack = Stack::new();
-            stack.push(5);
-            stack.push(42);
-
-            let res = stack.drop();
-
-            assert!(res.is_ok());
-            assert_eq!(stack.values, vec![5]);
-        }
-
-        #[test]
-        fn drop_with_empty_stack_fails() {
-            let mut stack = Stack::<isize>::new();
-
-            let res = stack.drop();
-
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
-
-        #[test]
-        fn switch_register_works() {
-            let mut stack = Stack::new();
-            stack.push(5);
-            stack.push(42);
-            stack.push(58);
-
-            let res = stack.switch_register();
-
-            assert!(res.is_ok());
-            assert_eq!(stack.register, Some(58));
-            assert_eq!(stack.values, vec![5, 42]);
-
-            let res2 = stack.switch_register();
-
-            assert!(res2.is_ok());
-            assert_eq!(stack.register, None);
-            assert_eq!(stack.values, vec![5, 42, 58]);
-        }
-
-        #[test]
-        fn switch_empty_register_on_empty_stack_fails() {
-            let mut stack = Stack::<isize>::new();
-
-            let res = stack.switch_register();
-
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
-
-        #[test]
-        fn swap_works() {
-            let mut stack = Stack::new();
-            stack.push(1);
-            stack.push(2);
-            stack.push(3);
-
-            let res = stack.swap();
-
-            assert!(res.is_ok());
-            assert_eq!(stack.values, vec![1, 3, 2]);
-        }
-
-        #[test]
-        fn swap_with_empty_stack_fails() {
-            let mut stack = Stack::<isize>::new();
-
-            let res = stack.swap();
-
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
-
-        #[test]
-        fn swap_with_one_element_fails() {
-            let mut stack = Stack::new();
-            stack.push(1);
-
-            let res = stack.swap();
-
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
-
-        #[test]
-        fn swap2_works() {
-            let mut stack = Stack::new();
-            stack.push(1);
-            stack.push(2);
-            stack.push(3);
-            stack.push(4);
-
-            let res = stack.swap2();
-
-            assert!(res.is_ok());
-            assert_eq!(stack.values, vec![1, 4, 2, 3]);
-        }
-
-        #[test]
-        fn swap2_with_empty_stack_fails() {
-            let mut stack = Stack::<isize>::new();
-
-            let res = stack.swap2();
-
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
-
-        #[test]
-        fn swap2_with_one_element_fails() {
-            let mut stack = Stack::new();
-            stack.push(1);
-
-            let res = stack.swap2();
-
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
-
-        #[test]
-        fn swap2_with_two_elements_fails() {
-            let mut stack = Stack::new();
-            stack.push(1);
-            stack.push(2);
-
-            let res = stack.swap2();
-
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
-
-        #[test]
-        fn rshift_works() {
-            let mut stack = Stack::new();
-            stack.push(1);
-            stack.push(2);
-            stack.push(3);
-            stack.push(4);
-
-            stack.rshift();
-
-            assert_eq!(stack.values, vec![4, 1, 2, 3]);
-        }
-
-        #[test]
-        fn lshift_works() {
-            let mut stack = Stack::new();
-            stack.push(1);
-            stack.push(2);
-            stack.push(3);
-            stack.push(4);
-
-            stack.lshift();
-
-            assert_eq!(stack.values, vec![2, 3, 4, 1]);
-        }
+        assert!(stack.is_empty());
+        assert_eq!(stack.register, None);
     }
 
-    mod stack_of_stacks {
-        use super::super::*;
+    #[test]
+    fn push_works() {
+        let mut stack = Stack::new();
+        stack.push(5);
+        stack.push(42);
+        stack.push(58);
 
-        #[test]
-        fn new_works() {
-            let s = StackOfStacks::<isize>::new();
+        assert_eq!(stack.len(), 3);
+        assert_eq!(stack.values, vec![5, 42, 58]);
+    }
 
-            assert_eq!(s.additional_stacks.len(), 0);
-            assert_eq!(s.initial_stack.len(), 0);
-            assert_eq!(s.initial_stack.register, None);
-        }
+    #[test]
+    fn pop_works() {
+        let mut stack = Stack::<isize>::new();
+        stack.push(5);
 
-        #[test]
-        fn push_stack_works() {
-            let mut s = StackOfStacks::new();
-            s.top_mut().push(5);
-            s.top_mut().push(42);
-            s.top_mut().push(58);
+        assert_eq!(stack.pop(), Some(5));
+    }
 
-            let res = s.push_stack(2);
+    #[test]
+    fn pop_empty_stack_returns_none() {
+        let mut stack = Stack::<isize>::new();
+        assert_eq!(stack.pop(), None);
+    }
 
-            assert!(res.is_ok());
+    #[test]
+    fn dup_works() {
+        let mut stack = Stack::new();
+        stack.push(5);
+        stack.push(42);
 
-            assert_eq!(s.additional_stacks.len(), 1);
-            assert_eq!(s.initial_stack.values, vec![5]);
-            assert_eq!(s.additional_stacks[0].values, vec![42, 58]);
-            assert_eq!(s.additional_stacks[0].register, None);
-        }
+        let res = stack.dup();
 
-        #[test]
-        fn push_stack_with_all_elements_works() {
-            let mut s = StackOfStacks::new();
-            s.top_mut().push(5);
-            s.top_mut().push(42);
-            s.top_mut().push(58);
+        assert!(res.is_ok());
+        assert_eq!(stack.values, vec![5, 42, 42]);
+    }
 
-            let res = s.push_stack(3);
+    #[test]
+    fn dup_with_empty_stack_fails() {
+        let mut stack = Stack::<isize>::new();
 
-            assert!(res.is_ok());
+        let res = stack.dup();
 
-            assert_eq!(s.additional_stacks.len(), 1);
-            assert_eq!(s.initial_stack.values, vec![0; 0]);
-            assert_eq!(s.additional_stacks[0].values, vec![5, 42, 58]);
-            assert_eq!(s.additional_stacks[0].register, None);
-        }
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
 
-        #[test]
-        fn push_stack_with_zero_elements_works() {
-            let mut s = StackOfStacks::new();
-            s.top_mut().push(5);
-            s.top_mut().push(42);
-            s.top_mut().push(58);
+    #[test]
+    fn drop_works() {
+        let mut stack = Stack::new();
+        stack.push(5);
+        stack.push(42);
 
-            let res = s.push_stack(0);
+        let res = stack.drop();
 
-            assert!(res.is_ok());
+        assert!(res.is_ok());
+        assert_eq!(stack.values, vec![5]);
+    }
 
-            assert_eq!(s.additional_stacks.len(), 1);
-            assert_eq!(s.initial_stack.values, vec![5, 42, 58]);
-            assert_eq!(s.additional_stacks[0].values, vec![0; 0]);
-            assert_eq!(s.additional_stacks[0].register, None);
-        }
+    #[test]
+    fn drop_with_empty_stack_fails() {
+        let mut stack = Stack::<isize>::new();
 
-        #[test]
-        fn push_stack_with_too_many_values_fails() {
-            let mut s = StackOfStacks::new();
-            s.top_mut().push(5);
-            s.top_mut().push(42);
+        let res = stack.drop();
 
-            let res = s.push_stack(3);
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
 
-            assert_eq!(res, Err(Error::StackUnderflow));
-        }
+    #[test]
+    fn switch_register_works() {
+        let mut stack = Stack::new();
+        stack.push(5);
+        stack.push(42);
+        stack.push(58);
 
-        #[test]
-        fn pop_stack_works() {
-            let mut s = StackOfStacks::new();
-            s.top_mut().push(5);
-            s.top_mut().push(42);
-            s.top_mut().push(58);
+        let res = stack.switch_register();
 
-            let res = s.push_stack(2);
+        assert!(res.is_ok());
+        assert_eq!(stack.register, Some(58));
+        assert_eq!(stack.values, vec![5, 42]);
 
-            assert!(res.is_ok());
+        let res2 = stack.switch_register();
 
-            s.pop_stack();
+        assert!(res2.is_ok());
+        assert_eq!(stack.register, None);
+        assert_eq!(stack.values, vec![5, 42, 58]);
+    }
 
-            assert_eq!(s.additional_stacks.len(), 0);
-            assert_eq!(s.initial_stack.values, vec![5, 42, 58]);
-            assert_eq!(s.initial_stack.register, None);
-        }
+    #[test]
+    fn switch_empty_register_on_empty_stack_fails() {
+        let mut stack = Stack::<isize>::new();
 
-        #[test]
-        fn pop_stack_with_base_register_works() {
-            let mut s = StackOfStacks::new();
-            s.top_mut().push(5);
-            s.top_mut().push(42);
-            s.top_mut().push(58);
+        let res = stack.switch_register();
 
-            let _ = s.top_mut().switch_register().unwrap();
-            let _ = s.push_stack(1).unwrap();
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
 
-            s.pop_stack();
+    #[test]
+    fn swap_works() {
+        let mut stack = Stack::new();
+        stack.push(1);
+        stack.push(2);
+        stack.push(3);
 
-            assert_eq!(s.additional_stacks.len(), 0);
-            assert_eq!(s.initial_stack.values, vec![5, 42]);
-            assert_eq!(s.initial_stack.register, Some(58));
-        }
+        let res = stack.swap();
 
-        #[test]
-        fn pop_stack_with_top_register_works() {
-            let mut s = StackOfStacks::new();
-            s.top_mut().push(5);
-            s.top_mut().push(42);
-            s.top_mut().push(58);
+        assert!(res.is_ok());
+        assert_eq!(stack.values, vec![1, 3, 2]);
+    }
 
-            let _ = s.push_stack(2).unwrap();
-            let _ = s.top_mut().switch_register().unwrap();
+    #[test]
+    fn swap_with_empty_stack_fails() {
+        let mut stack = Stack::<isize>::new();
 
-            s.pop_stack();
+        let res = stack.swap();
 
-            assert_eq!(s.additional_stacks.len(), 0);
-            assert_eq!(s.initial_stack.values, vec![5, 42]);
-            assert_eq!(s.initial_stack.register, None);
-        }
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
 
-        #[test]
-        fn pop_initial_stack_makes_it_empty() {
-            let mut s = StackOfStacks::new();
-            s.top_mut().push(5);
-            s.top_mut().push(42);
-            s.top_mut().push(58);
+    #[test]
+    fn swap_with_one_element_fails() {
+        let mut stack = Stack::new();
+        stack.push(1);
 
-            let _ = s.top_mut().switch_register().unwrap();
+        let res = stack.swap();
 
-            s.pop_stack();
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
 
-            assert_eq!(s.additional_stacks.len(), 0);
-            assert_eq!(s.initial_stack.values, vec![0; 0]);
-            assert_eq!(s.initial_stack.register, None);
-        }
+    #[test]
+    fn swap2_works() {
+        let mut stack = Stack::new();
+        stack.push(1);
+        stack.push(2);
+        stack.push(3);
+        stack.push(4);
+
+        let res = stack.swap2();
+
+        assert!(res.is_ok());
+        assert_eq!(stack.values, vec![1, 4, 2, 3]);
+    }
+
+    #[test]
+    fn swap2_with_empty_stack_fails() {
+        let mut stack = Stack::<isize>::new();
+
+        let res = stack.swap2();
+
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
+
+    #[test]
+    fn swap2_with_one_element_fails() {
+        let mut stack = Stack::new();
+        stack.push(1);
+
+        let res = stack.swap2();
+
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
+
+    #[test]
+    fn swap2_with_two_elements_fails() {
+        let mut stack = Stack::new();
+        stack.push(1);
+        stack.push(2);
+
+        let res = stack.swap2();
+
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
+
+    #[test]
+    fn rshift_works() {
+        let mut stack = Stack::new();
+        stack.push(1);
+        stack.push(2);
+        stack.push(3);
+        stack.push(4);
+
+        stack.rshift();
+
+        assert_eq!(stack.values, vec![4, 1, 2, 3]);
+    }
+
+    #[test]
+    fn lshift_works() {
+        let mut stack = Stack::new();
+        stack.push(1);
+        stack.push(2);
+        stack.push(3);
+        stack.push(4);
+
+        stack.lshift();
+
+        assert_eq!(stack.values, vec![2, 3, 4, 1]);
+    }
+}
+
+#[cfg(test)]
+mod stack_of_stacks_tests {
+    use super::*;
+
+    #[test]
+    fn new_works() {
+        let s = StackOfStacks::<isize>::new();
+
+        assert_eq!(s.additional_stacks.len(), 0);
+        assert_eq!(s.initial_stack.len(), 0);
+        assert_eq!(s.initial_stack.register, None);
+    }
+
+    #[test]
+    fn push_stack_works() {
+        let mut s = StackOfStacks::new();
+        s.top_mut().push(5);
+        s.top_mut().push(42);
+        s.top_mut().push(58);
+
+        let res = s.push_stack(2);
+
+        assert!(res.is_ok());
+
+        assert_eq!(s.additional_stacks.len(), 1);
+        assert_eq!(s.initial_stack.values, vec![5]);
+        assert_eq!(s.additional_stacks[0].values, vec![42, 58]);
+        assert_eq!(s.additional_stacks[0].register, None);
+    }
+
+    #[test]
+    fn push_stack_with_all_elements_works() {
+        let mut s = StackOfStacks::new();
+        s.top_mut().push(5);
+        s.top_mut().push(42);
+        s.top_mut().push(58);
+
+        let res = s.push_stack(3);
+
+        assert!(res.is_ok());
+
+        assert_eq!(s.additional_stacks.len(), 1);
+        assert_eq!(s.initial_stack.values, vec![0; 0]);
+        assert_eq!(s.additional_stacks[0].values, vec![5, 42, 58]);
+        assert_eq!(s.additional_stacks[0].register, None);
+    }
+
+    #[test]
+    fn push_stack_with_zero_elements_works() {
+        let mut s = StackOfStacks::new();
+        s.top_mut().push(5);
+        s.top_mut().push(42);
+        s.top_mut().push(58);
+
+        let res = s.push_stack(0);
+
+        assert!(res.is_ok());
+
+        assert_eq!(s.additional_stacks.len(), 1);
+        assert_eq!(s.initial_stack.values, vec![5, 42, 58]);
+        assert_eq!(s.additional_stacks[0].values, vec![0; 0]);
+        assert_eq!(s.additional_stacks[0].register, None);
+    }
+
+    #[test]
+    fn push_stack_with_too_many_values_fails() {
+        let mut s = StackOfStacks::new();
+        s.top_mut().push(5);
+        s.top_mut().push(42);
+
+        let res = s.push_stack(3);
+
+        assert_eq!(res, Err(Error::StackUnderflow));
+    }
+
+    #[test]
+    fn pop_stack_works() {
+        let mut s = StackOfStacks::new();
+        s.top_mut().push(5);
+        s.top_mut().push(42);
+        s.top_mut().push(58);
+
+        let res = s.push_stack(2);
+
+        assert!(res.is_ok());
+
+        s.pop_stack();
+
+        assert_eq!(s.additional_stacks.len(), 0);
+        assert_eq!(s.initial_stack.values, vec![5, 42, 58]);
+        assert_eq!(s.initial_stack.register, None);
+    }
+
+    #[test]
+    fn pop_stack_with_base_register_works() {
+        let mut s = StackOfStacks::new();
+        s.top_mut().push(5);
+        s.top_mut().push(42);
+        s.top_mut().push(58);
+
+        let _ = s.top_mut().switch_register().unwrap();
+        let _ = s.push_stack(1).unwrap();
+
+        s.pop_stack();
+
+        assert_eq!(s.additional_stacks.len(), 0);
+        assert_eq!(s.initial_stack.values, vec![5, 42]);
+        assert_eq!(s.initial_stack.register, Some(58));
+    }
+
+    #[test]
+    fn pop_stack_with_top_register_works() {
+        let mut s = StackOfStacks::new();
+        s.top_mut().push(5);
+        s.top_mut().push(42);
+        s.top_mut().push(58);
+
+        let _ = s.push_stack(2).unwrap();
+        let _ = s.top_mut().switch_register().unwrap();
+
+        s.pop_stack();
+
+        assert_eq!(s.additional_stacks.len(), 0);
+        assert_eq!(s.initial_stack.values, vec![5, 42]);
+        assert_eq!(s.initial_stack.register, None);
+    }
+
+    #[test]
+    fn pop_initial_stack_makes_it_empty() {
+        let mut s = StackOfStacks::new();
+        s.top_mut().push(5);
+        s.top_mut().push(42);
+        s.top_mut().push(58);
+
+        let _ = s.top_mut().switch_register().unwrap();
+
+        s.pop_stack();
+
+        assert_eq!(s.additional_stacks.len(), 0);
+        assert_eq!(s.initial_stack.values, vec![0; 0]);
+        assert_eq!(s.initial_stack.register, None);
     }
 }
