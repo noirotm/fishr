@@ -67,6 +67,19 @@ impl CodeBox {
             None
         }
     }
+
+    fn set(&mut self, x: usize, y: usize, val: u8) {
+        if let Some(line) = self.data.get_mut(y) {
+            if x < self.width {
+                if x + 1 > line.len() {
+                    line.resize(x + 1, b' ');
+                }
+                if let Some(p) = line.get_mut(x) {
+                    *p = val;
+                }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -680,6 +693,62 @@ mod tests {
         assert_eq!(cb.height, 0);
         assert_eq!(cb.width, 0);
         assert!(cb.data.is_empty());
+    }
+
+    #[test]
+    fn codebox_get() {
+        let cb = CodeBox::load_from_string("str");
+        let v = cb.get(0, 0);
+        assert_eq!(v, Some(b's'));
+    }
+
+    #[test]
+    fn codebox_get_invalid_x() {
+        let cb = CodeBox::load_from_string("str");
+        let v = cb.get(5, 0);
+        assert_eq!(v, None);
+    }
+
+    #[test]
+    fn codebox_get_invalid_y() {
+        let cb = CodeBox::load_from_string("str");
+        let v = cb.get(0, 5);
+        assert_eq!(v, None);
+    }
+
+    #[test]
+    fn codebox_get_empty_pos() {
+        let cb = CodeBox::load_from_string("str\nmore\nlines");
+        let v = cb.get(3, 0);
+        assert_eq!(v, Some(b' '));
+    }
+
+    #[test]
+    fn codebox_set() {
+        let mut cb = CodeBox::load_from_string("str");
+        cb.set(0, 0, b'a');
+        assert_eq!(cb.data[0], vec![b'a', b't', b'r']);
+    }
+
+    #[test]
+    fn codebox_set_empty() {
+        let mut cb = CodeBox::load_from_string("str\nmore\nlines");
+        cb.set(4, 0, b'a');
+        assert_eq!(cb.data[0], vec![b's', b't', b'r', b' ', b'a']);
+    }
+
+    #[test]
+    fn codebox_set_invalid_x() {
+        let mut cb = CodeBox::load_from_string("str\nmore\nlines");
+        cb.set(5, 0, b'a');
+        assert_eq!(cb.data[0], vec![b's', b't', b'r']);
+    }
+
+    #[test]
+    fn codebox_set_invalid_y() {
+        let mut cb = CodeBox::load_from_string("str\nmore\nlines");
+        cb.set(0, 3, b'a');
+        assert_eq!(cb.height, 3);
     }
 
     #[test]
