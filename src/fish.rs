@@ -330,7 +330,7 @@ impl<R: Read, W: Write> Interpreter<R, W> {
 
             // # Literals and operators
             // literal values
-            b'0'...b'9' | b'a'...b'f' => {
+            b'0'..=b'9' | b'a'..=b'f' => {
                 if let Some(val) = (instruction as char).to_digit(16) {
                     self.stack.top_mut().push((val as u8).into());
                 }

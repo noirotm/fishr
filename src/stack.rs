@@ -81,7 +81,7 @@ where
 
     pub fn swap2(&mut self) -> Result<(), Error> {
         match self.values.len() {
-            0...2 => Err(Error::StackUnderflow),
+            0..=2 => Err(Error::StackUnderflow),
             n => {
                 self.values.swap(n - 2, n - 1);
                 self.values.swap(n - 3, n - 2);
