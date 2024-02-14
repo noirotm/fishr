@@ -68,6 +68,7 @@ impl CodeBox {
         }
     }
 
+    #[allow(dead_code)]
     fn set(&mut self, x: usize, y: usize, val: u8) {
         if let Some(line) = self.data.get_mut(y) {
             if x < self.width {
