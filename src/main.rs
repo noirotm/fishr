@@ -1,81 +1,49 @@
-use clap::{App, Arg};
+use clap::Parser;
+use std::path::PathBuf;
 use std::{process, time::Duration};
 
-const NAME: &str = env!("CARGO_PKG_NAME");
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+#[derive(Parser)]
+#[command(version, author = "marc.noirot@gmail.com", about, long_about = None)]
+struct Args {
+    /// set the input file to use
+    #[arg(value_name = "FILE", conflicts_with = "code")]
+    input: Option<PathBuf>,
+
+    /// string of instructions to execute instead of FILE
+    #[arg(short = 'c', long = "code")]
+    code: Option<String>,
+
+    /// push strings onto the stack before execution starts
+    #[arg(short = 's', long = "string")]
+    strings: Vec<String>,
+
+    /// push numbers onto the stack before execution starts
+    #[arg(short = 'v', long = "value")]
+    numbers: Vec<i64>,
+
+    /// define a delay between the execution of each instruction
+    #[arg(short = 't', long = "tick")]
+    tick: Option<u64>,
+
+    /// make every instruction cause a tick, even whitespace and skipped instructions
+    #[arg(short = 'a', long = "always-tick")]
+    always_tick: bool,
+
+    /// dump interpreter state before executing an instruction
+    #[arg(short = 'd', long = "debug")]
+    debug: bool,
+}
 
 fn main() {
-    let matches = App::new(NAME)
-        .version(VERSION)
-        .author("Marc Noirot <marc.noirot@gmail.com>")
-        .about("Fish language interpreter")
-        .arg(
-            Arg::with_name("INPUT")
-                .help("set the input file to use")
-                .conflicts_with("code")
-                .value_name("FILE")
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("code")
-                .short("c")
-                .long("code")
-                .help("string of instructions to execute instead of FILE")
-                .takes_value(true)
-                .value_name("CODE"),
-        )
-        .arg(
-            Arg::with_name("string")
-                .short("s")
-                .long("string")
-                .help("push strings onto the stack before execution starts")
-                .takes_value(true)
-                .value_name("STRING")
-                .multiple(true)
-                .number_of_values(1),
-        )
-        .arg(
-            Arg::with_name("value")
-                .short("v")
-                .long("value")
-                .help("push numbers onto the stack before execution starts")
-                .takes_value(true)
-                .value_name("NUMBER")
-                .multiple(true)
-                .number_of_values(1),
-        )
-        .arg(
-            Arg::with_name("tick")
-                .short("t")
-                .long("tick")
-                .help("define a delay between the execution of each instruction")
-                .takes_value(true)
-                .value_name("DELAY"),
-        )
-        .arg(
-            Arg::with_name("always_tick")
-                .short("a")
-                .long("always-tick")
-                .help(
-                    "make every instruction cause a tick, even whitespace and skipped instructions",
-                ),
-        )
-        .arg(
-            Arg::with_name("debug")
-                .short("d")
-                .long("debug")
-                .help("dump interpreter state before executing an instruction"),
-        )
-        .get_matches();
+    let args = Args::parse();
 
-    let code_box = match matches.value_of("code") {
+    let code_box = match args.code {
         Some(c) => fish::CodeBox::load_from_string(&c),
         None => {
-            let input = matches.value_of("INPUT").unwrap_or_else(|| {
-                println!("{}", matches.usage());
+            let input = args.input.unwrap_or_else(|| {
+                println!("Error: missing file name");
                 process::exit(1)
             });
-
             fish::CodeBox::load_from_file(&input).unwrap_or_else(|e| {
                 println!("Error: {}", e);
                 process::exit(2)
@@ -88,29 +56,17 @@ fn main() {
 
     let mut fish = fish::Interpreter::new(input, output);
 
-    if let Some(strings) = matches.values_of("string") {
-        for c in strings {
-            fish.push_str(c);
-        }
+    for s in &args.strings {
+        fish.push_str(s);
     }
 
-    if let Some(numbers) = matches.values_of("value") {
-        for c in numbers {
-            let n = c.parse::<i64>().unwrap_or_else(|e| {
-                println!("Error: {}", e);
-                process::exit(2)
-            });
-            fish.push_i64(n);
-        }
+    for n in args.numbers {
+        fish.push_i64(n);
     }
 
-    fish.trace = matches.is_present("debug");
+    fish.trace = args.debug;
 
-    if let Some(tick) = matches.value_of("tick") {
-        let seconds = tick.parse::<u64>().unwrap_or_else(|e| {
-            println!("Error: {}", e);
-            process::exit(2)
-        });
+    if let Some(seconds) = args.tick {
         fish.tick = Some(Duration::from_secs(seconds));
     }
 
